@@ -1,0 +1,33 @@
+import js from '@eslint/js';
+import globals from 'globals';
+
+export default [
+    { ignores: [ 'node_modules/**' ] },
+    js.configs.recommended,
+    {
+        languageOptions: {
+            globals: globals.node,
+            ecmaVersion: 2022,
+            sourceType: 'module',
+        },
+        rules: {
+            indent: ['error', 4],
+
+            // Spaces inside object literals: { key: val } not {key: val}
+            'object-curly-spacing': ['error', 'always'],
+
+            // Max 1 consecutive blank line
+            'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0, maxBOF: 0 }],
+
+            // Require blank line before return in multi-line blocks
+            'newline-before-return': 'error',
+
+            'no-console': 'off',
+            'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+            eqeqeq: ['error', 'always'],
+            'no-var': 'error',
+            'prefer-const': 'error',
+            'no-throw-literal': 'error',
+        },
+    },
+];

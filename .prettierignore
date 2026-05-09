@@ -8,6 +8,10 @@ build/
 
 # Generated types
 next-env.d.ts
+eslint.config.mjs
+
+# Backend is linted with its own ESLint rules and style
+backend/**
 
 # Package lock files
 package-lock.json
