@@ -1,5 +1,6 @@
 'use client';
 import { Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 function handleSignin() {
@@ -79,12 +80,12 @@ export default function SignIn() {
 
         <p className="text-sm text-gray-500">
           Don&apos;t have an account?{' '}
-          <a
-            href="/signup"
+          <Link
+            href="/sign-up"
             className="font-medium text-(--color-yellow) transition-opacity hover:opacity-80"
           >
             Sign up
-          </a>
+          </Link>
         </p>
       </div>
     </div>
