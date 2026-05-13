@@ -60,14 +60,26 @@ export function EmailConfirmation({
             </div>
           </div>
 
-          <PrimaryButton
-            text="View full booking details "
-            textColor="--color-blue"
-            onclick="/ll"
-            textSize="18"
-            height="40"
-            width="50%"
-          />
+          <div className="hidden md:block">
+            <PrimaryButton
+              text="View full booking details "
+              textColor="--color-blue"
+              onclick="/ll"
+              textSize="18"
+              height="40"
+              width="50%"
+            />
+          </div>
+          <div className="md:hidden">
+            <PrimaryButton
+              text="View full booking details "
+              textColor="--color-blue"
+              onclick="/ll"
+              textSize="14"
+              height="40"
+              width="50%"
+            />
+          </div>
         </div>
 
         <div className="border-t border-gray-100 bg-gray-50 px-8 py-6 text-center">
