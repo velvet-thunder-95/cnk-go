@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Abril+Fatface&display=swap');
 @import 'tailwindcss';
 
 :root {
@@ -10,12 +11,17 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-abril: 'Abril Fatface', serif;
+  --font-gochi: 'Gochi Hand', cursive;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --color-blue: #584cff;
+    --color-green: #5a7c4c;
+    --color-green-secondary: #059669;
   }
 }
 
@@ -23,4 +29,21 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .hero-title-size {
+    font-size: clamp(44px, 7.5vw, 96px);
+  }
+  .hero-sub-size {
+    font-size: clamp(28px, 5vw, 64px);
+  }
+  .hero-desc-size {
+    font-size: clamp(13px, 1.5vw, 15px);
+  }
+  .hero-underline {
+    text-decoration: underline;
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
+  }
 }
