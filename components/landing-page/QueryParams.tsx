@@ -1,7 +1,7 @@
 'use client';
+import Dropdown from '@/components/ui/Dropdown';
+import PrimaryButton from '@/components/ui/PrimaryButton';
 import { type QuickPlannerData } from '@/interface/QuickPlannerData';
-import Dropdown from '@/ui/Dropdown';
-import PrimaryButton from '@/ui/PrimaryButton';
 import React, { useState } from 'react';
 
 const QueryParams: React.FC = () => {
@@ -14,14 +14,6 @@ const QueryParams: React.FC = () => {
   const [clearance, setClearance] = useState('Unrestricted');
 
   const handleSearch = () => {
-    console.log({
-      origin,
-      date,
-      duration,
-      pax,
-      accommodation,
-      clearance,
-    });
     setData({
       origin,
       date,
@@ -31,7 +23,6 @@ const QueryParams: React.FC = () => {
       clearance,
     });
     console.log(data);
-    alert('search');
   };
 
   return (

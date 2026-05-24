@@ -1,4 +1,3 @@
-'use client';
 import Credentials from '@/components/login-page/Credentials';
 
 interface Props {
@@ -7,7 +6,6 @@ interface Props {
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams;
-  console.log(params);
   const defaultTab = params.tab === 'signup' ? 'signup' : 'signin';
 
   return (

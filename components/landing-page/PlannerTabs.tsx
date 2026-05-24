@@ -14,13 +14,13 @@ const PlannerTabs: React.FC = () => {
   const activeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: 'smooth' });
+    activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [active]);
 
   return (
     <div className="">
       <div className="w-full border-b border-[#E5E7EB] bg-white">
-        <div className="scrollbar-hide flex items-center overflow-x-auto md:px-[64px]">
+        <div className="scrollbar-hide flex items-center overflow-x-auto px-3 pb-3 md:px-[64px]">
           {tabs.map((tab) => {
             const isActive = active === tab.id;
             return (

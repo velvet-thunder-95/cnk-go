@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-8">
+        <div className="grid grid-cols-2 items-center gap-8 md:grid-cols-3">
           {links.map((link) => (
             <a
               key={link}

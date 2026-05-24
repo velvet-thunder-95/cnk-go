@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import PrimaryButton from '@/ui/PrimaryButton';
+import PrimaryButton from '@/components/ui/PrimaryButton';
 import { useRouter } from 'next/navigation';
 
 const Navbar: React.FC = () => {

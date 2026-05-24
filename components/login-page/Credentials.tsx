@@ -1,6 +1,6 @@
 'use client';
 import { check } from '@/helpers/CredentialsCheck';
-import PrimaryButton from '@/ui/PrimaryButton';
+import PrimaryButton from '@/components/ui/PrimaryButton';
 import { useState } from 'react';
 
 interface Props {
@@ -13,12 +13,10 @@ export default function Credentials({ defaultTab }: Props) {
 
   function handleSignin() {
     if (!check(email, password)) return;
-    console.log('login', email, password);
   }
 
   function handleSignup() {
     if (!check(email, password)) return;
-    console.log('signup', email, password);
   }
   return (
     <div className="flex w-full flex-col items-center justify-center bg-white px-8 md:w-1/2">
@@ -26,16 +24,16 @@ export default function Credentials({ defaultTab }: Props) {
         <h1 className="mb-1 text-2xl font-bold text-[#171717]">Welcome back</h1>
         <p className="mb-6 text-sm text-[#6B7280]">Enter your details to access your dashboard.</p>
 
-        <div className="mb-6 flex rounded border border-[#E5E7EB]">
+        <div className="mb-6 flex rounded border border-[#E5E7EB] bg-black/10 p-[5px]">
           <button
             onClick={() => setTab('signin')}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${tab === 'signin' ? 'bg-gray-400/40 text-[#171717]' : 'text-[#6B7280] hover:text-[#171717]'}`}
+            className={`flex-1 py-2 text-sm font-medium transition-colors ${tab === 'signin' ? 'bg-white text-black' : 'text-[#6B7280]'}`}
           >
             Sign In
           </button>
           <button
             onClick={() => setTab('signup')}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${tab === 'signup' ? 'bg-gray-400/40 text-[#171717]' : 'text-[#6B7280] hover:text-[#171717]'}`}
+            className={`flex-1 py-2 text-sm font-medium transition-colors ${tab === 'signup' ? 'bg-white text-[#171717]' : 'bg-white/40 text-[#6B7280]'}`}
           >
             Create Account
           </button>
@@ -71,7 +69,6 @@ export default function Credentials({ defaultTab }: Props) {
 
           <PrimaryButton
             onClick={() => {
-              console.log('clicked');
               tab === 'signin' ? handleSignin() : handleSignup();
             }}
             label={tab === 'signin' ? 'Continue to Dashboard →' : 'Create Account →'}

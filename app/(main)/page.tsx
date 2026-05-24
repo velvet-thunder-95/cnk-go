@@ -1,4 +1,3 @@
-'use client';
 import Hero from '@/components/landing-page/Hero';
 import PlannerTabs from '@/components/landing-page/PlannerTabs';
 

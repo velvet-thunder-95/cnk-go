@@ -32,12 +32,12 @@ const Hero: React.FC = () => {
         />
 
         <div className="relative z-10 flex w-full max-w-[1200px] flex-col items-center">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white/[0.83] px-[18px] py-[6px] text-[13px] text-[#3D3D3D] backdrop-blur-sm">
-            <span className="font-semibold text-(--color-blue)">{'{}'}</span>
+          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-(--color-blue)/25 px-[18px] py-[6px] text-[13px] text-(--color-blue) backdrop-blur-sm">
+            <span className="text-black">{'{}'}</span>
             Plan your perfect getaway
           </span>
 
-          <h1 className="font-abril hero-title-size hero-underline m-0 mb-1.5 w-full text-[70px] leading-none tracking-tight text-(--color-blue) uppercase">
+          <h1 className="font-abril hero-title-size m-0 mb-1.5 w-full text-[70px] leading-none tracking-tight text-(--color-blue) uppercase">
             YOUR DREAM HOLIDAY
           </h1>
 
