@@ -2,6 +2,7 @@
 import React from 'react';
 import { Plane, BedDouble, Upload, TrendingUp, Star, Plus, RefreshCw } from 'lucide-react';
 import PrimaryButton from '@/ui/PrimaryButton';
+import Image from 'next/image';
 
 interface ResultCard {
   id: number;
@@ -86,7 +87,7 @@ const cards: ResultCard[] = [
 const ResultCard: React.FC<{ card: ResultCard }> = ({ card }) => (
   <div className="flex max-w-[864px] flex-col overflow-hidden rounded border border-[#E5E7EB] bg-white">
     <div className="relative h-[200px] w-full overflow-hidden">
-      <img src={card.image} alt={card.node} className="h-full w-full object-cover" />
+      <Image src={card.image} alt={card.node} fill className="h-full w-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
       <div className="absolute top-3 left-3">

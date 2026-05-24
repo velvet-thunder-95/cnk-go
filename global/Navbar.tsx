@@ -1,8 +1,10 @@
 'use client';
 import React from 'react';
 import PrimaryButton from '@/ui/PrimaryButton';
+import { useRouter } from 'next/navigation';
 
 const Navbar: React.FC = () => {
+  const router = useRouter();
   return (
     <nav className="w-full border-b border-[#E5E7EB] bg-white px-6 py-3">
       <div className="mx-auto flex items-center justify-between gap-4">
@@ -15,11 +17,18 @@ const Navbar: React.FC = () => {
             Global Travel Logistics Database
           </span>
 
-          <button className="hover:border-blue hover:text-blue rounded border border-[#E5E7EB] bg-white px-4 py-1.5 text-sm font-medium whitespace-nowrap text-[#171717] transition-colors">
+          <button
+            onClick={() => router.push('/auth?tab=signin')}
+            className="hover:border-blue hover:text-blue rounded border border-[#E5E7EB] bg-white px-4 py-1.5 text-sm font-medium whitespace-nowrap text-[#171717] transition-colors"
+          >
             Sign In
           </button>
 
-          <PrimaryButton label="Sign Up" className="w-auto px-4 py-1.5 text-sm whitespace-nowrap" />
+          <PrimaryButton
+            onClick={() => router.push('/auth?tab=signup')}
+            label="Sign Up"
+            className="w-auto px-4 py-1.5 text-sm whitespace-nowrap"
+          />
         </div>
       </div>
     </nav>
