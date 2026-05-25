@@ -1,25 +1,25 @@
 'use client';
 import React from 'react';
-import PrimaryButton from '@/components/ui/PrimaryButton';
+import PrimaryButton from '@/components/ui/primaryButton';
 import { useRouter } from 'next/navigation';
 
 const Navbar: React.FC = () => {
   const router = useRouter();
   return (
-    <nav className="w-full border-b border-[#E5E7EB] bg-white px-6 py-3">
+    <nav className="border-white-secondary w-full border-b bg-white px-6 py-3">
       <div className="mx-auto flex items-center justify-between gap-4">
-        <span className="text-xl font-extrabold tracking-tight text-[#171717]">
+        <span className="text-md font-extrabold tracking-tight text-black/80 md:text-xl">
           INSTANTLY HOLIDAY
         </span>
 
-        <div className="flex items-center gap-8">
-          <span className="hidden text-sm whitespace-nowrap text-[#6B7280] sm:block">
+        <div className="flex items-center gap-3 md:gap-6">
+          <span className="text-gray hidden text-sm whitespace-nowrap sm:block">
             Global Travel Logistics Database
           </span>
 
           <button
             onClick={() => router.push('/auth?tab=signin')}
-            className="hover:border-blue hover:text-blue rounded border border-[#E5E7EB] bg-white px-4 py-1.5 text-sm font-medium whitespace-nowrap text-[#171717] transition-colors"
+            className="hover:border-blue hover:text-blue border-white-secondary rounded border bg-white px-4 py-1.5 text-sm font-medium whitespace-nowrap text-black/80 transition-colors"
           >
             Sign In
           </button>
@@ -27,7 +27,7 @@ const Navbar: React.FC = () => {
           <PrimaryButton
             onClick={() => router.push('/auth?tab=signup')}
             label="Sign Up"
-            className="w-auto px-4 py-1.5 text-sm whitespace-nowrap"
+            className="w-auto px-4 py-2 text-sm whitespace-nowrap"
           />
         </div>
       </div>

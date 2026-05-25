@@ -68,14 +68,14 @@ const legendDot: Record<string, string> = {
 const DestinationFinderRight: React.FC = () => {
   const [selected, setSelected] = useState<string>('May 22');
   return (
-    <div className="w-full bg-white px-4">
+    <div className="w-full px-4">
       <div className="mb-5 flex max-w-[1150px] flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-[#6B7280]">Next 6 months • Click a week for details</p>
+        <p className="text-gray text-sm">Next 6 months • Click a week for details</p>
         <div className="flex items-center gap-4">
           {['cheap', 'moderate', 'expensive'].map((tier) => (
             <span
               key={tier}
-              className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-[#171717] uppercase"
+              className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-black/80 uppercase"
             >
               <span className={`h-2.5 w-2.5 rounded-full ${legendDot[tier]}`} />
               {tier}
@@ -87,8 +87,8 @@ const DestinationFinderRight: React.FC = () => {
       <div className="flex flex-col gap-6">
         {data.map((group) => (
           <div key={group.month}>
-            <h3 className="mb-3 text-lg font-bold text-[#171717]">{group.month}</h3>
-            <div className="mb-3 h-px w-full bg-[#E5E7EB]" />
+            <h3 className="mb-3 text-lg font-bold text-black/80">{group.month}</h3>
+            <div className="bg-white-secondary mb-3 h-px w-full" />
             <div className="flex flex-wrap gap-3">
               {group.weeks.map((i) => {
                 const isActive = selected === i.date;
@@ -100,21 +100,23 @@ const DestinationFinderRight: React.FC = () => {
                     }}
                     className={`relative flex min-w-[120px] cursor-pointer flex-col items-start gap-1 rounded border px-4 py-3 text-left transition-all duration-200 ${
                       isActive
-                        ? 'border-(--color-blue) bg-(--color-blue)/10'
-                        : 'hover:border-blue/40 border-[#E5E7EB] bg-white'
+                        ? 'border-blue bg-blue/10 text-blue!'
+                        : 'hover:border-blue/40 border-white-secondary bg-white'
                     }`}
                   >
                     {isActive && (
-                      <span className="bg-blue absolute -top-2.5 -right-2.5 flex h-5 w-5 items-center justify-center rounded-full">
-                        <Star size={35} className="fill-(--color-blue) text-white" />
+                      <span className="border-gray bg-blue absolute -top-2.5 -right-2.5 flex h-5 w-5 items-center justify-center rounded-full border">
+                        <Star size={20} className="fill-blue p-0.5 text-white" />
                       </span>
                     )}
                     <span
-                      className={`text-xs font-medium ${i.isCurrentWeek && !isActive ? 'text-blue underline' : 'text-[#6B7280]'}`}
+                      className={`text-xs font-medium ${i.isCurrentWeek && !isActive ? 'text-blue underline' : 'text-gray'}`}
                     >
                       {i.date}
                     </span>
-                    <span className={`text-lg font-bold ${tierColor[i.tier]}`}>
+                    <span
+                      className={`text-lg font-bold ${isActive ? `text-blue` : `${tierColor[i.tier]}`}`}
+                    >
                       ₹{i.price.toLocaleString('en-IN')}
                     </span>
                   </button>

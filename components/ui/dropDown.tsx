@@ -31,25 +31,23 @@ const Dropdown: React.FC<DropdownProps> = ({ options, placeholder = 'Select', on
     <div ref={ref} className="relative w-full">
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded border border-black/10 bg-white px-3 py-2 text-sm text-[#171717] transition-colors hover:border-(--color-blue)/70 focus:outline-none"
+        className="hover:border-blue/70 flex w-full items-center justify-between rounded border border-black/10 bg-white px-3 py-2 text-sm text-black/80 transition-colors focus:outline-none"
       >
-        <span className={selected ? 'text-[#171717]' : 'text-[#6B7280]'}>
-          {selected ?? placeholder}
-        </span>
+        <span className={selected ? 'text-black/80' : 'text-gray'}>{selected ?? placeholder}</span>
         <ChevronDown
           size={16}
           strokeWidth={1.8}
-          className={`text-[#6B7280] transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`text-gray transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {open && (
-        <ul className="absolute z-50 mt-1 w-full overflow-hidden rounded border border-[#E5E7EB] bg-white shadow-md">
+        <ul className="border-white-secondary absolute z-50 mt-1 w-full overflow-hidden rounded border bg-white shadow-md">
           {options.map((option) => (
             <li
               key={option}
               onClick={() => handleSelect(option)}
-              className={`cursor-pointer px-3 py-2 text-sm transition-colors hover:bg-(--color-blue)/5 hover:text-(--color-blue) ${selected === option ? 'bg-(--color-blue)/5 text-(--color-blue)' : 'text-[#171717]'}`}
+              className={`hover:bg-blue/5 hover:text-blue cursor-pointer px-3 py-2 text-sm transition-colors ${selected === option ? 'bg-blue/5 text-blue' : 'text-black/80'}`}
             >
               {option}
             </li>

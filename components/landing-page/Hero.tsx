@@ -3,17 +3,17 @@ import { Compass, Radio, LayoutGrid } from 'lucide-react';
 
 const features = [
   {
-    icon: <Compass size={20} className="text-(--color-blue)" strokeWidth={1.8} />,
+    icon: <Compass size={20} className="text-blue" strokeWidth={1.8} />,
     title: 'DIRECT ACCESS TO 15+',
     subtitle: 'Optimized transit routes',
   },
   {
-    icon: <Radio size={20} className="text-(--color-blue)" strokeWidth={1.8} />,
+    icon: <Radio size={20} className="text-blue" strokeWidth={1.8} />,
     title: 'REAL-TIME COMPUTATION',
     subtitle: 'Sub-second itinerary generation',
   },
   {
-    icon: <LayoutGrid size={20} className="text-(--color-blue)" strokeWidth={1.8} />,
+    icon: <LayoutGrid size={20} className="text-blue" strokeWidth={1.8} />,
     title: 'COMPREHENSIVE COST FIX',
     subtitle: 'Zero variance fee structure',
   },
@@ -22,7 +22,7 @@ const features = [
 const Hero: React.FC = () => {
   return (
     <>
-      <section className="relative flex min-h-[480px] w-full flex-col items-center justify-center overflow-hidden border border-[#E5E7EB] bg-white px-6 py-14 text-center shadow-[0_4px_32px_rgba(0,0,0,0.08)] md:px-10">
+      <section className="border-white-secondary relative flex min-h-120 w-full flex-col items-center justify-center overflow-hidden border bg-white px-6 py-14 text-center md:px-10">
         <div
           className="absolute inset-0 z-0 bg-cover bg-center opacity-25"
           style={{
@@ -31,13 +31,13 @@ const Hero: React.FC = () => {
           }}
         />
 
-        <div className="relative z-10 flex w-full max-w-[1200px] flex-col items-center">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-(--color-blue)/25 px-[18px] py-[6px] text-[13px] text-(--color-blue) backdrop-blur-sm">
-            <span className="text-black">{'{}'}</span>
+        <div className="relative z-10 flex w-full max-w-300 flex-col items-center">
+          <span className="bg-blue/25 text-blue border-white-secondary mb-5 inline-flex items-center gap-2 rounded-full border px-4.5 py-1.5 text-[13px] backdrop-blur-sm">
+            <span className="text-blue">{'{}'}</span>
             Plan your perfect getaway
           </span>
 
-          <h1 className="font-abril hero-title-size m-0 mb-1.5 w-full text-[70px] leading-none tracking-tight text-(--color-blue) uppercase">
+          <h1 className="font-abril hero-title-size text-blue m-0 mb-1.5 w-full text-[70px] leading-none tracking-tight uppercase">
             YOUR DREAM HOLIDAY
           </h1>
 
@@ -45,27 +45,25 @@ const Hero: React.FC = () => {
             PLANNED IN MINUTES
           </h2>
 
-          <p className="hero-desc-size mx-auto mb-11 max-w-[520px] leading-[1.65] text-[#6B7280]">
+          <p className="text-md text-gray mx-auto mb-11 max-w-130 leading-[1.65]">
             Analyze flight routes, accommodation metrics, and entry requirements. Direct access to
             data-driven travel itineraries with comprehensive cost indices.
           </p>
 
-          <div className="flex w-full flex-wrap justify-center gap-5">
+          <div className="flex w-fit flex-wrap justify-center gap-5">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="flex max-w-[280px] flex-1 basis-[220px] items-center gap-3.5 rounded-[10px] border border-[#E5E7EB] bg-white/[0.83] px-5 py-4 text-left backdrop-blur-sm sm:max-w-full"
+                className="border-white-secondary flex max-w-75 flex-1 basis-55 items-center gap-3.5 border bg-white/83 px-5 py-4 text-center text-left whitespace-nowrap backdrop-blur-sm sm:max-w-full md:min-w-80"
               >
-                <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-lg bg-(--color-blue)/10">
+                <div className="bg-blue/10 flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-lg">
                   {feature.icon}
                 </div>
-                <div className="flex flex-col gap-[3px]">
-                  <span className="text-[14px] leading-[1.2] font-bold tracking-[0.4px] text-black uppercase">
+                <div className="flex flex-col gap-0.75">
+                  <span className="text-[14px] leading-[1.2] font-bold tracking-[0.4px] text-black/80 uppercase">
                     {feature.title}
                   </span>
-                  <span className="text-[13px] leading-[1.3] text-[#6B7280]">
-                    {feature.subtitle}
-                  </span>
+                  <span className="text-gray text-[13px] leading-[1.3]">{feature.subtitle}</span>
                 </div>
               </div>
             ))}
