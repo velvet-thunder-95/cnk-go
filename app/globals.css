@@ -41,10 +41,10 @@ body {
 
 @layer utilities {
   .hero-title-size {
-    font-size: clamp(44px, 7.5vw, 96px);
+    font-size: clamp(30.2px, 7.5vw, 75px);
   }
   .hero-sub-size {
-    font-size: clamp(28px, 5vw, 64px);
+    font-size: clamp(31px, 5vw, 70px);
   }
   .hero-underline {
     text-decoration: underline;
