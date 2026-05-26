@@ -51,4 +51,7 @@ body {
     text-underline-offset: 6px;
     text-decoration-thickness: 2px;
   }
+  .border-roundness {
+    border-radius: 7px;
+  }
 }

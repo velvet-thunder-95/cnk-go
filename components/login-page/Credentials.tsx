@@ -21,10 +21,11 @@ export default function Credentials({ defaultTab }: Props) {
   return (
     <div className="flex w-full flex-col items-center justify-center bg-white px-8 md:w-1/2">
       <div className="w-full max-w-[400px]">
+        <div className="bg-blue mb-1 h-1 w-3"></div>
         <h1 className="mb-1 text-2xl font-bold text-black/80">Welcome back</h1>
         <p className="text-gray mb-6 text-sm">Enter your details to access your dashboard.</p>
 
-        <div className="border-white-secondary mb-6 flex rounded border bg-black/5 p-[5px]">
+        <div className="border-white-secondary border-roundness mb-6 flex border bg-black/5 p-[5px]">
           <button
             onClick={() => setTab('signin')}
             className={`flex-1 py-2 text-sm font-medium transition-colors ${tab === 'signin' ? 'bg-white text-black/80' : 'text-gray'}`}
@@ -47,7 +48,7 @@ export default function Credentials({ defaultTab }: Props) {
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="focus:border-blue placeholder-gray border-white-secondary w-full rounded border px-3 py-2.5 text-sm text-black/80 focus:outline-none"
+              className="focus:border-blue border-roundness placeholder-gray border-white-secondary w-full rounded border px-3 py-2.5 text-sm text-black/80 focus:outline-none"
             />
           </div>
 
@@ -63,7 +64,7 @@ export default function Credentials({ defaultTab }: Props) {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="focus:border-blue placeholder-gray border-white-secondary w-full rounded border px-3 py-2.5 text-sm text-black/80 focus:outline-none"
+              className="focus:border-blue border-roundness placeholder-gray border-white-secondary w-full rounded border px-3 py-2.5 text-sm text-black/80 focus:outline-none"
             />
           </div>
 

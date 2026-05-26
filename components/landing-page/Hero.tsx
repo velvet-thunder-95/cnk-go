@@ -4,18 +4,18 @@ import { Compass, Radio, LayoutGrid } from 'lucide-react';
 const features = [
   {
     icon: <Compass size={20} className="text-blue" strokeWidth={1.8} />,
-    title: 'DIRECT ACCESS TO 15+',
-    subtitle: 'Optimized transit routes',
+    title: '15+ Destinations',
+    subtitle: 'Curated weekend escapes',
   },
   {
     icon: <Radio size={20} className="text-blue" strokeWidth={1.8} />,
-    title: 'REAL-TIME COMPUTATION',
-    subtitle: 'Sub-second itinerary generation',
+    title: 'Instant Planning',
+    subtitle: 'Compare trips in seconds',
   },
   {
     icon: <LayoutGrid size={20} className="text-blue" strokeWidth={1.8} />,
-    title: 'COMPREHENSIVE COST FIX',
-    subtitle: 'Zero variance fee structure',
+    title: 'Transparent Pricing',
+    subtitle: 'No hidden costs',
   },
 ];
 
@@ -54,7 +54,7 @@ const Hero: React.FC = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="border-white-secondary flex max-w-75 flex-1 basis-55 items-center gap-3.5 border bg-white/83 px-5 py-4 text-center text-left whitespace-nowrap backdrop-blur-sm sm:max-w-full md:min-w-80"
+                className="border-white-secondary border-roundness flex max-w-75 flex-1 basis-55 items-center gap-3.5 border bg-white/83 px-5 py-4 text-center text-left whitespace-nowrap backdrop-blur-sm sm:max-w-full md:min-w-80"
               >
                 <div className="bg-blue/10 flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-lg">
                   {feature.icon}

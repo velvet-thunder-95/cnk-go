@@ -10,12 +10,12 @@ interface Props {
 export function DestinationHero({ id }: Props) {
   const destinationDetails = data.find((d) => d.id === id)!;
   return (
-    <div className="border-roundness relative mx-auto mt-12 mb-[17px] flex h-100 overflow-hidden xl:max-w-[1600px] 2xl:h-120 2xl:max-w-[1830px]">
+    <div className="relative mx-auto mt-12 mb-[17px] flex h-100 overflow-hidden xl:max-w-[1600px] 2xl:h-120 2xl:max-w-[1830px]">
       <Image
         src={destinationDetails.image}
         alt={destinationDetails.name}
         fill
-        className="border-roundness object-cover"
+        className="object-cover"
         priority
       />
       <div className="absolute inset-0 bg-black/30" />
@@ -27,7 +27,7 @@ export function DestinationHero({ id }: Props) {
       </div>
 
       <div className="absolute bottom-4 left-4">
-        <h1 className="font-inter text-5xl font-bold text-white 2xl:text-7xl">
+        <h1 className="font-inter text-7xl font-bold text-white 2xl:text-8xl">
           {destinationDetails.name}
         </h1>
         <p className="text-md font-inter px-2 text-white/80 2xl:text-lg">

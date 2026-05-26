@@ -146,7 +146,7 @@ interface ResultCardProps {
 }
 function ResultCard({ card }: ResultCardProps) {
   return (
-    <div className="border-white-secondary flex max-w-[864px] flex-col overflow-hidden rounded border bg-white">
+    <div className="border-white-secondary border-roundness flex max-w-[864px] flex-col overflow-hidden rounded border bg-white">
       <div className="relative h-[200px] w-full overflow-hidden">
         <Image src={card.image} alt={card.node} fill className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />

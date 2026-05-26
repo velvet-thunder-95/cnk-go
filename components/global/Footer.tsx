@@ -1,4 +1,6 @@
 'use client';
+import Image from 'next/image';
+import Link from 'next/link';
 import React from 'react';
 
 const links = ['DATA PRIVACY', 'SYSTEM PROTOCOL', 'SUPPORT VECTOR'];
@@ -8,9 +10,12 @@ const Footer: React.FC = () => {
     <footer className="border-white-secondary w-full border-t bg-white px-6 py-6">
       <div className="mx-auto flex flex-wrap items-start justify-between gap-6">
         <div className="flex flex-col gap-1">
-          <span className="text-base font-extrabold tracking-tight text-black/80">
+          {/* <span className="text-base font-extrabold tracking-tight text-black/80">
             INSTANTLY HOLIDAY
-          </span>
+          </span> */}
+          <Link href="/">
+            <Image width={130} height={100} alt="cnk-logo" src={'/cnk-logo.png'} className="" />
+          </Link>
           <span className="text-gray text-xs">© 2026 INSTANTLY HOLIDAY</span>
         </div>
 

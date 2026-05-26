@@ -11,8 +11,8 @@ export function CostBreakdown({ id }: Props) {
   const { visa, flights, hotel } = d.costBreakdown;
 
   return (
-    <div className="border-white-secondary border-roundness w-full border bg-white px-5 py-4">
-      <h2 className="mb-4 text-lg font-semibold text-black/80 2xl:text-lg">Cost Breakdown</h2>
+    <div className="border-white-secondary w-full border bg-white px-5 py-4">
+      <h2 className="mb-4 text-lg font-semibold text-black/80 2xl:text-xl">Cost Breakdown</h2>
 
       <div className="mb-4 flex h-2.5 w-full overflow-hidden">
         <div className="bg-gray-400" style={{ width: `${visa.percentage}%` }} />

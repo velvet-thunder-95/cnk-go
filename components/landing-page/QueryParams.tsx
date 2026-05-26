@@ -29,7 +29,7 @@ const QueryParams: React.FC = () => {
 
   return (
     <div
-      className={`border-white-secondary mx-2 flex flex-col gap-5 border bg-white p-3 md:mx-0 md:max-w-[256px] 2xl:max-w-[350px]`}
+      className={`border-white-secondary border-roundness mx-2 flex flex-col gap-5 border bg-white p-3 md:mx-0 md:max-w-[256px] 2xl:max-w-[350px]`}
     >
       <div className="flex items-center justify-between">
         <button onClick={() => setOpen((prev) => !prev)}>
@@ -83,7 +83,7 @@ const QueryParams: React.FC = () => {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="focus:border-blue border-white-secondary w-full border bg-white px-3 py-2 text-sm text-[#171717] focus:outline-none"
+            className="focus:border-blue border-roundness border-white-secondary w-full cursor-pointer border bg-white px-3 py-2 text-sm text-[#171717] focus:outline-none"
           />
         </div>
         <div className="flex flex-col gap-1.5">
