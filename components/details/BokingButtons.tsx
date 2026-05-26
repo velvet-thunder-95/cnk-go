@@ -11,6 +11,7 @@ export function BookingButtons({ id }: Props) {
 
   return (
     <div className="flex w-full flex-col gap-3">
+      <div></div>
       <div className="border-white-secondary border-roundness w-full border bg-white p-5">
         <h3 className="mb-4 text-base font-bold text-black/70 2xl:text-lg">Best Time to Visit</h3>
         <div className="flex flex-wrap gap-2">

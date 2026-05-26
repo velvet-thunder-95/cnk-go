@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
             INSTANTLY HOLIDAY
           </span> */}
           <Link href="/">
-            <Image width={130} height={100} alt="cnk-logo" src={'/cnk-logo.png'} className="" />
+            <Image width={130} height={100} alt="cnk-logo" src={'/cnk-logo.png'} />
           </Link>
           <span className="text-gray text-xs">© 2026 INSTANTLY HOLIDAY</span>
         </div>
