@@ -1,36 +1,141 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CNK GO
 
-## Getting Started
+B2C international holiday package booking — flight + hotel for Indian travellers.
 
-First, run the development server:
+---
+
+## Backend Setup
+
+### Prerequisites
+
+- Node.js (LTS)
+- A Supabase project (free tier works)
+- TripJack sandbox API key (shared via team)
+
+### 1. Install dependencies
+
+```bash
+cd backend
+npm install
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Fill in your `.env`:
+
+| Variable | Where to find it |
+|----------|-----------------|
+| `DATABASE_URL` | Supabase Dashboard → Settings → Database → URI (Session mode, port 5432) |
+| `SUPABASE_URL` | Supabase Dashboard → Settings → API → Project URL |
+| `SUPABASE_KEY` | Supabase Dashboard → Settings → API → `service_role` key (secret!) |
+| `TRIPJACK_API_KEY` | Shared in team chat |
+
+Leave Razorpay empty until Week 3.
+
+### 3. Set up Supabase (fresh start)
+
+If this is a fresh project or you need to reset:
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Open your project → **SQL Editor**
+3. If tables already exist and you want a clean slate, run:
+
+```sql
+DROP TABLE IF EXISTS cron_job_failures CASCADE;
+DROP TABLE IF EXISTS cron_runs CASCADE;
+DROP TABLE IF EXISTS booking_passengers CASCADE;
+DROP TABLE IF EXISTS bookings CASCADE;
+DROP TABLE IF EXISTS weekly_price_cache CASCADE;
+DROP TABLE IF EXISTS hotel_price_cache CASCADE;
+DROP TABLE IF EXISTS flight_price_cache CASCADE;
+DROP TABLE IF EXISTS hotels CASCADE;
+DROP TABLE IF EXISTS destinations CASCADE;
+DROP TABLE IF EXISTS origin_cities CASCADE;
+DROP TABLE IF EXISTS health CASCADE;
+```
+
+4. Then run the migration:
+
+```bash
+npm run migrate
+```
+
+This creates all 10 tables + seeds origin cities and destinations.
+
+### 4. Verify
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+You should see:
+```
+Connecting to database...
+Database connected.
+[server] Running on port 4000 (development)
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Visit `http://localhost:4000` — should return `{"name":"cnk-go-api","status":"ok","version":"1.0.0"}`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Project Structure
 
-## Learn More
+```
+backend/
+  src/
+    index.js               # Express app entry point
+    config/
+      supabaseClient.js    # Supabase singleton (service role)
+    clients/
+      tripjack/
+        flightClient.js    # Flight API wrappers (search, review, book, details, cancel)
+        hotelClient.js     # Hotel API wrappers (H1-H4, details, cancel)
+        index.js           # Re-exports both clients
+    middleware/
+      asyncHandler.js      # Wraps async routes for error forwarding
+      authMiddleware.js    # Verifies Supabase JWT
+      errorHandler.js      # Global error handler (4-arg)
+      rateLimiter.js       # express-rate-limit config
+    routes/                # Express route handlers (added per ticket)
+    services/              # Business logic (added per ticket)
+    jobs/                  # Cron job implementations (added per ticket)
+    utils/
+      constants.js         # All config constants
+      priceCalculator.js   # Price calculation helpers
+      dateHelpers.js       # Date manipulation utilities
+  migrations/
+    001_initial_schema.sql # All tables + seed data
+  scripts/
+    migrate.js             # Runs migrations via pg
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start with hot-reload (nodemon) |
+| `npm start` | Production start |
+| `npm run migrate` | Run SQL migrations against Supabase |
+| `npm run lint` | ESLint check |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Frontend Setup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Prerequisites
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Node.js (LTS)
+
+### 1. Install & run
+
+```bash
+# From the repo root (not backend/)
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+

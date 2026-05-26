@@ -1,0 +1,4 @@
+# Cron jobs will be added here as tickets are built:
+# - flightCron.js        (BE-7)
+# - hotelCron.js         (BE-8)
+# - weeklyAggregation.js (BE-9)

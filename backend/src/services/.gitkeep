@@ -1,0 +1,4 @@
+# Services will be added here as tickets are built:
+# - searchService.js   (BE-10, BE-11)
+# - bookingService.js  (BE-12 through BE-15)
+# - cronService.js     (BE-6 through BE-9)
