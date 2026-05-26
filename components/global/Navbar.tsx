@@ -12,7 +12,7 @@ const Navbar: React.FC = () => {
           INSTANTLY HOLIDAY
         </span>
 
-        <div className="flex items-center gap-3 md:gap-6">
+        <div className="flex items-center gap-3">
           <span className="text-gray hidden text-sm whitespace-nowrap sm:block">
             Global Travel Logistics Database
           </span>
