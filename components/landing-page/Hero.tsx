@@ -37,20 +37,20 @@ const Hero: React.FC = () => {
             Plan your perfect getaway
           </span>
 
-          <h1 className="font-abril hero-title-size text-blue m-0 mb-1.5 w-full text-[70px] leading-none tracking-tight uppercase">
+          <h1 className="font-abril hero-title-size text-blue m-0 mb-1.5 w-full leading-none tracking-tight uppercase">
             YOUR DREAM HOLIDAY
           </h1>
 
-          <h2 className="font-gochi hero-sub-size m-0 mb-7 w-full text-[64px] leading-[1.1] tracking-[1px] text-[#908D8D] uppercase">
+          <h2 className="font-gochi hero-sub-size m-0 mb-2 w-full text-[64px] leading-[1.1] tracking-[1px] text-[#908D8D] uppercase">
             PLANNED IN MINUTES
           </h2>
 
-          <p className="text-md text-gray mx-auto mb-11 max-w-130 leading-[1.65]">
-            Analyze flight routes, accommodation metrics, and entry requirements. Direct access to
-            data-driven travel itineraries with comprehensive cost indices.
+          <p className="mb-11 max-w-230 text-sm text-gray-600 md:text-lg">
+            Compare flights, hotels, and visa requirements across destinations. Get transparent cost
+            breakdowns and find the best value for your next adventure.
           </p>
 
-          <div className="flex w-fit flex-wrap justify-center gap-5">
+          <div className="hidden w-fit flex-wrap justify-center gap-5 md:flex">
             {features.map((feature, index) => (
               <div
                 key={index}

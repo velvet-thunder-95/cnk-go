@@ -29,12 +29,14 @@ const QueryParams: React.FC = () => {
 
   return (
     <div
-      className={`border-white-secondary flex w-full flex-col gap-5 border bg-white ${open ? `p-5` : `p-3`} md:max-w-[256px] 2xl:max-w-[350px]`}
+      className={`border-white-secondary mx-2 flex flex-col gap-5 border bg-white p-3 md:mx-0 md:max-w-[256px] 2xl:max-w-[350px]`}
     >
-      <div className="flex justify-between">
-        <h2 className="text-xs font-bold tracking-widest text-[#171717] uppercase">
-          Query Parameters
-        </h2>
+      <div className="flex items-center justify-between">
+        <button onClick={() => setOpen((prev) => !prev)}>
+          <h2 className="text-xs font-bold tracking-widest text-[#171717] uppercase">
+            Query Parameters
+          </h2>
+        </button>
         <div className="md:hidden">
           {open ? (
             <button onClick={() => setOpen((prev) => !prev)}>
@@ -81,7 +83,7 @@ const QueryParams: React.FC = () => {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="focus:border-blue border-white-secondary w-full rounded border bg-white px-3 py-2 text-sm text-[#171717] focus:outline-none"
+            className="focus:border-blue border-white-secondary w-full border bg-white px-3 py-2 text-sm text-[#171717] focus:outline-none"
           />
         </div>
         <div className="flex flex-col gap-1.5">

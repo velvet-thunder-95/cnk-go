@@ -31,7 +31,7 @@ const Dropdown: React.FC<DropdownProps> = ({ options, placeholder = 'Select', on
     <div ref={ref} className="relative w-full">
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="hover:border-blue/70 flex w-full items-center justify-between rounded border border-black/10 bg-white px-3 py-2 text-sm text-black/80 transition-colors focus:outline-none"
+        className="hover:border-blue/70 flex w-full items-center justify-between border border-black/10 bg-white px-3 py-2 text-sm text-black/80 transition-colors focus:outline-none"
       >
         <span className={selected ? 'text-black/80' : 'text-gray'}>{selected ?? placeholder}</span>
         <ChevronDown

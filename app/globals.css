@@ -11,7 +11,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --color-blue: #584cff;
+  --color-blue: hsl(216, 70%, 33%);
   --color-green: #5a7c4c;
   --color-green-secondary: #059669;
   --color-blue-secondary: #3b1fa8;
@@ -41,10 +41,10 @@ body {
 
 @layer utilities {
   .hero-title-size {
-    font-size: clamp(44px, 7.5vw, 96px);
+    font-size: clamp(30.2px, 7.5vw, 75px);
   }
   .hero-sub-size {
-    font-size: clamp(28px, 5vw, 64px);
+    font-size: clamp(31px, 5vw, 70px);
   }
   .hero-underline {
     text-decoration: underline;
