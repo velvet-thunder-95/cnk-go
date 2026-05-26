@@ -11,7 +11,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --color-blue: #584cff;
+  --color-blue: hsl(216, 70%, 33%);
   --color-green: #5a7c4c;
   --color-green-secondary: #059669;
   --color-blue-secondary: #3b1fa8;

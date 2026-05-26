@@ -50,7 +50,7 @@ const Hero: React.FC = () => {
             data-driven travel itineraries with comprehensive cost indices.
           </p>
 
-          <div className="flex w-fit flex-wrap justify-center gap-5">
+          <div className="hidden w-fit flex-wrap justify-center gap-5 md:flex">
             {features.map((feature, index) => (
               <div
                 key={index}

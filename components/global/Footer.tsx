@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
           <span className="text-base font-extrabold tracking-tight text-black/80">
             INSTANTLY HOLIDAY
           </span>
-          <span className="text-gray text-xs">© 2024 INSTANTLY HOLIDAY. LOGISTICS DATABASE.</span>
+          <span className="text-gray text-xs">© 2026 INSTANTLY HOLIDAY</span>
         </div>
 
         <div className="grid grid-cols-2 items-center gap-8 md:grid-cols-3">

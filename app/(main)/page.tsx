@@ -3,7 +3,7 @@ import PlannerTabs from '@/components/landing-page/PlannerTabs';
 
 export default function Home() {
   return (
-    <div className="">
+    <div>
       <Hero />
       <PlannerTabs />
     </div>

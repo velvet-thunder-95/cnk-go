@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 const Navbar: React.FC = () => {
   const router = useRouter();
   return (
-    <nav className="border-white-secondary w-full border-b bg-white px-6 py-3">
+    <nav className="border-white-secondary w-full border-b bg-white px-4 py-3 lg:px-6">
       <div className="mx-auto flex items-center justify-between gap-4">
         <span className="text-md font-extrabold tracking-tight text-black/80 md:text-xl">
           INSTANTLY HOLIDAY
@@ -19,7 +19,7 @@ const Navbar: React.FC = () => {
 
           <button
             onClick={() => router.push('/auth?tab=signin')}
-            className="hover:border-blue hover:text-blue border-white-secondary rounded border bg-white px-4 py-1.5 text-sm font-medium whitespace-nowrap text-black/80 transition-colors"
+            className="hover:border-blue hover:text-blue border-white-secondary border bg-white px-4 py-1.5 text-sm font-medium whitespace-nowrap text-black/80 transition-colors"
           >
             Sign In
           </button>
