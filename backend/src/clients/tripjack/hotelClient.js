@@ -120,7 +120,8 @@ export async function bookHotel( bookingId, travellers, delivery, amount ) {
         roomTravellerInfo: travellers,
         deliveryInfo: delivery,
     };
-    if ( amount !== null ) {
+    // Only add paymentInfos for instant booking; omit entirely for Hold Booking
+    if ( amount !== null && amount !== undefined ) {
         body.paymentInfos = [ { amount } ];
     }
     const { data } = await omsClient.post( '/oms/v3/hotel/book', body );
