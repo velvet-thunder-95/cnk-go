@@ -5,7 +5,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import supabase from './config/supabaseClient.js';
 import { globalErrorHandler } from './middleware/errorHandler.js';
-import { searchLimiter, bookingLimiter } from './middleware/rateLimiter.js';
+import response from './utils/response.js';
+import packagesRouter from './routes/packages.js';
+import flightsRouter from './routes/flights.js';
+import hotelsRouter from './routes/hotels.js';
+// import bookingsRouter from './routes/bookings.js';
+// import adminRouter    from './routes/admin.js';
 
 const app = express();
 
@@ -29,19 +34,17 @@ app.get( '/health', ( _req, res ) => {
     res.json( { status: 'ok', ts: new Date().toISOString() } );
 } );
 
-// ─── Feature routes (uncomment as each ticket is built) ──────────────────────
-// import searchRoutes  from './routes/search.js';
-// import bookingRoutes from './routes/bookings.js';
-// import adminRoutes   from './routes/admin.js';
-
-// app.use( '/api/search',   searchLimiter,  searchRoutes );
-// app.use( '/api/bookings', bookingLimiter, bookingRoutes );
-// app.use( '/api/admin',                   adminRoutes );
+// ─── Routes ───────────────────────────────────────────────────────────────────
+app.use( '/api/packages', packagesRouter );
+app.use( '/api/flights', flightsRouter );
+app.use( '/api/hotels', hotelsRouter );
+// app.use('/api/bookings', bookingsRouter);
+// app.use('/api/admin',    adminRouter);
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
-app.use( ( _req, res ) => {
-    res.status( 404 ).json( { success: false, error: { code: 'NOT_FOUND', message: 'Route not found' } } );
-} );
+app.use(( _req, res ) => {
+    response( res, false, 404, 'Route not found' );
+});
 
 // ─── Global error handler (must be 4-arg) ────────────────────────────────────
 app.use( globalErrorHandler );
@@ -52,7 +55,8 @@ const PORT = process.env.PORT || 4000;
 async function start() {
     try {
         console.log( 'Connecting to database...' );
-        const { error } = await supabase.from( 'health' ).select( '*' ).limit( 1 ).maybeSingle();
+        // Ping a real table to confirm DB connectivity
+        const { error } = await supabase.from( 'origin_cities' ).select( 'id' ).limit( 1 );
         if ( error ) throw error;
         console.log( 'Database connected.\n' );
     } catch ( err ) {
