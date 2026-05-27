@@ -1,6 +1,6 @@
 # CNK GO
 
-C&k international holiday package booking — flight + hotel for Indian travellers.
+B2C international holiday package booking — flight + hotel for Indian travellers.
 
 ---
 
