@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Abril+Fatface&family=Inter:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap');
+
 @import 'tailwindcss';
 
 :root {
@@ -8,13 +10,25 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-blue: hsl(216, 70%, 33%);
+  --color-green: #5a7c4c;
+  --color-green-secondary: #059669;
+  --color-blue-secondary: #3b1fa8;
+  --color-gray: #6b7280;
+  --color-white-secondary: #e5e7eb;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-abril: 'Abril Fatface', serif;
+  --font-gochi: 'Gochi Hand', cursive;
+  --font-inter: 'Inter', sans-serif;
+  --font-geist: 'Geist', sans-serif;
+  --font-geist-mono: 'Geist Mono', monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
@@ -22,5 +36,22 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif;
+}
+
+@layer utilities {
+  .hero-title-size {
+    font-size: clamp(30.2px, 7.5vw, 75px);
+  }
+  .hero-sub-size {
+    font-size: clamp(31px, 5vw, 70px);
+  }
+  .hero-underline {
+    text-decoration: underline;
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
+  }
+  .border-roundness {
+    border-radius: 7px;
+  }
 }

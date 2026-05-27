@@ -21,3 +21,6 @@ pnpm-lock.yaml
 # Misc
 *.pem
 .DS_Store
+
+# Ignore markdown files 
+*.md
