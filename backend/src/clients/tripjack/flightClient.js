@@ -70,6 +70,29 @@ export async function reviewFlight( priceId ) {
     return data;
 }
 
+// ─── Fare Validate (Pre-Book, Optional) ─────────────────────────────────────
+
+/**
+ * Optional pre-book fare validation step (v2.0) before final booking.
+ * Uses the same payload shape as Book and returns updated fare/alerts.
+ * @param {string}   bookingId   From Review response root
+ * @param {number}   amount      Total fare from Review (numeric)
+ * @param {object[]} travellers  Passenger details array
+ * @param {{ emails: string[], contacts: string[] }} delivery
+ * @returns {Promise<object>}
+ */
+export async function fareValidateFlight( bookingId, amount, travellers, delivery ) {
+    const body = {
+        bookingId,
+        paymentInfos: [ { amount } ],
+        travellerInfo: travellers,
+        deliveryInfo: delivery,
+    };
+    const { data } = await client.post( '/oms/v1/air/book/fare-validate', body );
+    
+    return data;
+}
+
 // ─── Flight Book ──────────────────────────────────────────────────────────────
 
 /**
