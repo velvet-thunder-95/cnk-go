@@ -156,3 +156,28 @@ export async function cancelHotel( bookingId ) {
     
     return data;
 }
+
+// ─── Hotel Details ─────────────────────────────────────────────────────────────
+/**
+ * Fetch static hotel catalogue with pagination.
+ * Used in one-time setup script to populate hotel_details table.
+ * @param {string|null} next  Pagination cursor from previous response (null for first page)
+ * @returns {Promise<{ data: object[], nextToken: string|null }>}
+ */
+export async function fetchHotels(next) {
+    const res = await axios.post(
+        `${process.env.TRIPJACK_BASE_URL}/hms/v3/fetch-static-hotels`,
+        next ? { next } : {},
+        {
+            headers: {
+                apikey: process.env.TRIPJACK_API_KEY,
+                'Content-Type': 'application/json',
+            },
+        }
+    );
+
+    return {
+        data: res.data.hotelOpInfos,
+        nextToken: res.data.next,
+    };
+}

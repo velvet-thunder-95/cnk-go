@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import response from '../utils/response.js';
 import * as hotelClient from '../clients/tripjack/hotelClient.js';
 import { generateCorrelationId } from '../utils/priceCalculator.js';
+import { destinations } from '../utils/internationalDestinations.js';
 
 // ─── POST /api/hotels/list ────────────────────────────────────────────────────
 // H1 — Hotel Listing. Returns available hotels with indicative prices.
@@ -197,4 +198,108 @@ export const cancelHotel = asyncHandler(async (req, res) => {
     }
 
     return response(res, true, 200, 'Hotel booking cancelled successfully');
+});
+
+// ─── POST /api/hotels/fetch-hotels ────────────────────────────────────────────────────
+// H0 — One time setup , fetches all the static details of the hotels available in the api 
+// Body: {nextPageToken?} - pagination token for fetching next set of hotels , for ther first call it should be null or undefined , then it will return the nextPageToken in response which can be used for next call to fetch next set of hotels
+export const fetchHotels = asyncHandler(async (_req, res) => {
+    let allRows = [];
+
+    const imap = new Map();
+    destinations.forEach((i) =>
+        imap.set(i.cityName, { "5star": 0, "4star": 0, "3star": 0 })
+    );
+
+    let next = null;
+    let pageCount = 0;
+
+    do {
+        pageCount++;
+        const { data, nextToken } = await hotelClient.fetchHotels(next);
+        next = nextToken;
+
+        if (!data?.length) break;
+
+        for (const i of data) {
+            const cityName = i.address?.city?.name;
+            if (!cityName || !imap.has(cityName)) continue;
+
+            const rating = i.rating;
+            const val = imap.get(cityName);
+
+            const inDemand =
+                (rating === 3 && val["3star"] < 5) ||
+                (rating === 4 && val["4star"] < 5) ||
+                (rating === 5 && val["5star"] < 5);
+
+            if (!inDemand) continue;
+
+            allRows.push({
+                tj_hotel_id    : i.tjHotelId,
+                name           : i.name,
+                rating         : i.rating,
+                country_name   : i.countryName                    ?? null,
+                country_code   : i.address?.country?.code         ?? null,
+                contact_number : i.contact?.ph                    ?? null,
+                latitude       : i.geolocation?.ln                ?? null,
+                longitude      : i.geolocation?.lt                ?? null,
+                address_1      : i.address?.adr                   ?? null,
+                postal_code    : i.address?.postalCode            ?? null,
+                city           : i.address?.city?.name            ?? null,
+                state          : i.address?.state?.name           ?? null,
+                images         : i.images?.map((j) => j.url)      ?? [],
+                description    : i.description                    ?? null,
+                facilities     : i.facilities?.map((j) => j.name) ?? []
+            });
+
+            if (rating === 3) val["3star"]++;
+            else if (rating === 4) val["4star"]++;
+            else if (rating === 5) val["5star"]++;
+        }
+
+        const allFull = [...imap.values()].every(
+            (v) => v["3star"] >= 5 && v["4star"] >= 5 && v["5star"] >= 5
+        );
+
+        if (pageCount % 100 === 0) {
+            const { error } = await supabase
+                .from("hotel_details")
+                .upsert(allRows, { onConflict: "tj_hotel_id" });
+            if (error) throw error;
+            allRows = [];
+        }
+
+        if (allFull) break;
+
+    } while (next);
+
+    if (allRows.length > 0) {
+        const { error } = await supabase
+            .from("hotel_details")
+            .upsert(allRows, { onConflict: "tj_hotel_id" });
+        if (error) throw error;
+    }
+
+    return response(res, true, 200, 'Hotels fetched and saved successfully', {
+        pages_fetched: pageCount,
+    });
+});
+
+// ─── GET /api/hotels/get-hotels ──────────────────────────────────────────────
+// Fetches static hotel details from DB for a given city.
+// star param is optional — filters by >= (e.g. star=4 returns 4 and 5 star hotels)
+// Query: { city: string (required), star: number (optional, 3–5) }
+// example : http://localhost:4000/api/hotels/get-hotels?city=Dubai&star=3
+export const getHotelsFromDB = asyncHandler(async (req, res) => {
+    const { city, star } = req.query;
+
+    if (!city) return response(res, false, 400, 'city is required');
+
+    const query = supabase.from("hotel_details").select("*").eq("city", city);
+    const { data, error } = await (star ? query.gte("rating", parseInt(star)) : query);
+
+    if (error) throw error;
+
+    return response(res, true, 200, null, { data });
 });
