@@ -31,9 +31,9 @@ router.get('/booking-details/:bookingId', getBookingDetails);
 router.post('/cancel', cancelHotel);
 
 // POST /api/hotels/fetch-hotels                — H0: One-time fetch of all hotels (static details)
-router.post('/fetch-hotels' , fetchHotels);
+router.post('/fetch-hotels', fetchHotels);
 
-// GET /api/hotels/get-hotels                — Get all hotels from DB (for testing)
-router.get("/get-hotels" , getHotelsFromDB);
+// GET /api/hotels/get-hotels                — Get all hotels from DB (for admin)
+router.get("/get-hotels", getHotelsFromDB);
 
 export default router;

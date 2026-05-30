@@ -206,63 +206,69 @@ export const cancelHotel = asyncHandler(async (req, res) => {
 export const fetchHotels = asyncHandler(async (_req, res) => {
     let allRows = [];
 
-    const imap = new Map();
-    destinations.forEach((i) =>
-        imap.set(i.cityName, { "5star": 0, "4star": 0, "3star": 0 })
+    const cityQuotaMap = new Map();
+    destinations.forEach((destination) =>
+        cityQuotaMap.set(destination.cityName, { "5star": 0, "4star": 0, "3star": 0 })
     );
 
-    let next = null;
+    let nextToken = null;
     let pageCount = 0;
 
     do {
         pageCount++;
-        const { data, nextToken } = await hotelClient.fetchHotels(next);
-        next = nextToken;
+        const { data, nextToken: newToken } = await hotelClient.fetchHotels(nextToken);
+        nextToken = newToken;
 
         if (!data?.length) break;
 
-        for (const i of data) {
-            const cityName = i.address?.city?.name;
-            if (!cityName || !imap.has(cityName)) continue;
+        for (const hotel of data) {
+            const cityName = hotel.address?.city?.name;
+            if (!cityName || !cityQuotaMap.has(cityName)) continue;
 
-            const rating = i.rating;
-            const val = imap.get(cityName);
+            const rating = hotel.rating;
+            const cityQuota = cityQuotaMap.get(cityName);
 
-            const inDemand =
-                (rating === 3 && val["3star"] < 5) ||
-                (rating === 4 && val["4star"] < 5) ||
-                (rating === 5 && val["5star"] < 5);
+            const isNeeded =
+                (rating === 3 && cityQuota["3star"] < 5) ||
+                (rating === 4 && cityQuota["4star"] < 5) ||
+                (rating === 5 && cityQuota["5star"] < 5);
 
-            if (!inDemand) continue;
+            if (!isNeeded) continue;
 
             allRows.push({
-                tj_hotel_id    : i.tjHotelId,
-                name           : i.name,
-                rating         : i.rating,
-                country_name   : i.countryName                    ?? null,
-                country_code   : i.address?.country?.code         ?? null,
-                contact_number : i.contact?.ph                    ?? null,
-                latitude       : i.geolocation?.ln                ?? null,
-                longitude      : i.geolocation?.lt                ?? null,
-                address_1      : i.address?.adr                   ?? null,
-                postal_code    : i.address?.postalCode            ?? null,
-                city           : i.address?.city?.name            ?? null,
-                state          : i.address?.state?.name           ?? null,
-                images         : i.images?.map((j) => j.url)      ?? [],
-                description    : i.description                    ?? null,
-                facilities     : i.facilities?.map((j) => j.name) ?? []
+                tj_hotel_id    : hotel.tjHotelId,
+                name           : hotel.name,
+                rating         : hotel.rating,
+                country_name   : hotel.countryName                    ?? null,
+                country_code   : hotel.address?.country?.code         ?? null,
+                contact_number : hotel.contact?.ph                    ?? null,
+                latitude       : hotel.geolocation?.lt                ?? null,
+                longitude      : hotel.geolocation?.ln                ?? null,
+                address_1      : hotel.address?.adr                   ?? null,
+                postal_code    : hotel.address?.postalCode            ?? null,
+                city           : hotel.address?.city?.name            ?? null,
+                state          : hotel.address?.state?.name           ?? null,
+                images         : hotel.images?.map((image) => image.url) ?? [],
+                description    : hotel.description                    ?? null,
+                facilities     : hotel.facilities?.map((facility) => facility.name) ?? []
             });
-
-            if (rating === 3) val["3star"]++;
-            else if (rating === 4) val["4star"]++;
-            else if (rating === 5) val["5star"]++;
+            if (rating === 3) cityQuota["3star"]++;
+            else if (rating === 4) cityQuota["4star"]++;
+            else if (rating === 5) cityQuota["5star"]++;
         }
 
-        const allFull = [...imap.values()].every(
-            (v) => v["3star"] >= 5 && v["4star"] >= 5 && v["5star"] >= 5
+        const allCitiesAtCapacity = [...cityQuotaMap.values()].every(
+            (quota) => quota["3star"] >= 5 && quota["4star"] >= 5 && quota["5star"] >= 5
         );
 
-        if (pageCount % 100 === 0) {
+        // if (pageCount % 100 === 0) {
+        //     const { error } = await supabase
+        //         .from("hotel_details")
+        //         .upsert(allRows, { onConflict: "tj_hotel_id" });
+        //     if (error) throw error;
+        //     allRows = [];
+        // }
+        if (allRows.length >= 50) {
             const { error } = await supabase
                 .from("hotel_details")
                 .upsert(allRows, { onConflict: "tj_hotel_id" });
@@ -270,9 +276,12 @@ export const fetchHotels = asyncHandler(async (_req, res) => {
             allRows = [];
         }
 
-        if (allFull) break;
+        // there is no break condition for pages , uncomment as requirements 
+        // if(pageCount === 2000 ) break ;
 
-    } while (next);
+        if (allCitiesAtCapacity) break;
+
+    } while (nextToken);
 
     if (allRows.length > 0) {
         const { error } = await supabase
@@ -293,11 +302,15 @@ export const fetchHotels = asyncHandler(async (_req, res) => {
 // example : http://localhost:4000/api/hotels/get-hotels?city=Dubai&star=3
 export const getHotelsFromDB = asyncHandler(async (req, res) => {
     const { city, star } = req.query;
-
     if (!city) return response(res, false, 400, 'city is required');
 
-    const query = supabase.from("hotel_details").select("*").eq("city", city);
-    const { data, error } = await (star ? query.gte("rating", parseInt(star)) : query);
+    const starNum = star ? Number(star) : null;
+    if (starNum !== null && (isNaN(starNum) || starNum < 1 || starNum > 5)) {
+        return response(res, false, 400, 'star must be an integer between 1 and 5');
+    }
+
+    const query = supabase.from('hotel_details').select('*').eq('city', city);
+    const { data, error } = await (starNum !== null ? query.gte('rating', starNum) : query);
 
     if (error) throw error;
 

@@ -165,15 +165,10 @@ export async function cancelHotel( bookingId ) {
  * @returns {Promise<{ data: object[], nextToken: string|null }>}
  */
 export async function fetchHotels(next) {
-    const res = await axios.post(
-        `${process.env.TRIPJACK_BASE_URL}/hms/v3/fetch-static-hotels`,
+    const res = await omsClient.post(
+        `/hms/v3/fetch-static-hotels`,
         next ? { next } : {},
-        {
-            headers: {
-                apikey: process.env.TRIPJACK_API_KEY,
-                'Content-Type': 'application/json',
-            },
-        }
+        { timeout: 60000 }  
     );
 
     return {
