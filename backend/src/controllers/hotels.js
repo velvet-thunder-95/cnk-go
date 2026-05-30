@@ -206,6 +206,12 @@ export const cancelHotel = asyncHandler(async (req, res) => {
 export const fetchHotels = asyncHandler(async (_req, res) => {
     let allRows = [];
 
+    const { data: destRows, error: destErr } = await supabase
+        .from('destinations')
+        .select('id, city_name');
+    if (destErr) throw destErr;
+    const cityToDestId = new Map(destRows.map(d => [d.city_name, d.id]));
+
     const cityQuotaMap = new Map();
     destinations.forEach((destination) =>
         cityQuotaMap.set(destination.cityName, { "5star": 0, "4star": 0, "3star": 0 })
@@ -236,22 +242,19 @@ export const fetchHotels = asyncHandler(async (_req, res) => {
             if (!isNeeded) continue;
 
             allRows.push({
-                tj_hotel_id    : hotel.tjHotelId,
-                name           : hotel.name,
-                rating         : hotel.rating,
-                country_name   : hotel.countryName                    ?? null,
-                country_code   : hotel.address?.country?.code         ?? null,
-                contact_number : hotel.contact?.ph                    ?? null,
-                latitude       : hotel.geolocation?.lt                ?? null,
-                longitude      : hotel.geolocation?.ln                ?? null,
-                address_1      : hotel.address?.adr                   ?? null,
-                postal_code    : hotel.address?.postalCode            ?? null,
-                city           : hotel.address?.city?.name            ?? null,
-                state          : hotel.address?.state?.name           ?? null,
-                images         : hotel.images?.map((image) => image.url) ?? [],
-                description    : hotel.description                    ?? null,
-                facilities     : hotel.facilities?.map((facility) => facility.name) ?? []
+                destination_id  : cityToDestId.get(cityName)                    ?? null,
+                tj_hotel_id     : hotel.tjHotelId,
+                name            : hotel.name,
+                star_rating     : hotel.rating                                   ?? null,
+                address         : hotel.address?.adr                             ?? null,
+                description     : hotel.description                              ?? null,
+                amenities       : hotel.facilities?.map((f) => f.name)          ?? [],
+                images          : hotel.images?.map((image) => image.url)       ?? [],
+                latitude        : hotel.geolocation?.lt                          ?? null,
+                longitude       : hotel.geolocation?.ln                          ?? null,
+                is_active       : true,
             });
+
             if (rating === 3) cityQuota["3star"]++;
             else if (rating === 4) cityQuota["4star"]++;
             else if (rating === 5) cityQuota["5star"]++;
@@ -261,23 +264,13 @@ export const fetchHotels = asyncHandler(async (_req, res) => {
             (quota) => quota["3star"] >= 5 && quota["4star"] >= 5 && quota["5star"] >= 5
         );
 
-        // if (pageCount % 100 === 0) {
-        //     const { error } = await supabase
-        //         .from("hotel_details")
-        //         .upsert(allRows, { onConflict: "tj_hotel_id" });
-        //     if (error) throw error;
-        //     allRows = [];
-        // }
         if (allRows.length >= 50) {
             const { error } = await supabase
-                .from("hotel_details")
-                .upsert(allRows, { onConflict: "tj_hotel_id" });
+                .from('hotels')
+                .upsert(allRows, { onConflict: 'tj_hotel_id' });
             if (error) throw error;
             allRows = [];
         }
-
-        // there is no break condition for pages , uncomment as requirements 
-        // if(pageCount === 2000 ) break ;
 
         if (allCitiesAtCapacity) break;
 
@@ -285,8 +278,8 @@ export const fetchHotels = asyncHandler(async (_req, res) => {
 
     if (allRows.length > 0) {
         const { error } = await supabase
-            .from("hotel_details")
-            .upsert(allRows, { onConflict: "tj_hotel_id" });
+            .from('hotels')
+            .upsert(allRows, { onConflict: 'tj_hotel_id' });
         if (error) throw error;
     }
 
@@ -309,8 +302,21 @@ export const getHotelsFromDB = asyncHandler(async (req, res) => {
         return response(res, false, 400, 'star must be an integer between 1 and 5');
     }
 
-    const query = supabase.from('hotel_details').select('*').eq('city', city);
-    const { data, error } = await (starNum !== null ? query.gte('rating', starNum) : query);
+    const { data: destRow, error: destErr } = await supabase
+        .from('destinations')
+        .select('id')
+        .eq('city_name', city)
+        .single();
+
+    if (destErr || !destRow) return response(res, false, 404, 'City not found');
+
+    const query = supabase
+        .from('hotels')
+        .select('*')
+        .eq('destination_id', destRow.id)
+        .eq('is_active', true);
+
+    const { data, error } = await (starNum !== null ? query.gte('star_rating', starNum) : query);
 
     if (error) throw error;
 
