@@ -14,6 +14,9 @@ const MAX_WORKERS = Number( process.env.MAX_CONCURRENT_FLIGHT_WORKERS ) || 3;
 // Max requests per second sent to TripJack (sandbox: 2/s, production: raise to 5+)
 const REQUESTS_PER_SECOND = Number( process.env.FLIGHT_REQUESTS_PER_SECOND ) || 2;
 
+/** Returns current time as HH:MM:SS for log prefixes. */
+const ts = () => new Date().toISOString().slice( 11, 19 );
+
 /**
  * Runs the full flight price cron job.
  * Fetches round-trip prices for all route-date combos, picks top 3 cheapest
@@ -22,7 +25,7 @@ const REQUESTS_PER_SECOND = Number( process.env.FLIGHT_REQUESTS_PER_SECOND ) || 
 export async function runFlightCron() {
     const startedAt = new Date().toISOString();
 
-    console.log( `[flight-cron] STARTING: Workers=${MAX_WORKERS}, RateLimit=${REQUESTS_PER_SECOND}/s` );
+    console.log( `[flight-cron][${ts()}] STARTING: Workers=${MAX_WORKERS}, RateLimit=${REQUESTS_PER_SECOND}/s` );
 
     // Create cron_runs entry
     const { data: cronRun, error: cronErr } = await supabase
@@ -38,11 +41,11 @@ export async function runFlightCron() {
     }
 
     const cronRunId = cronRun.id;
-    console.log( `[flight-cron] Started run #${cronRunId} at ${startedAt}` );
+    console.log( `[flight-cron][${ts()}] Started run #${cronRunId} at ${startedAt}` );
 
     // Generate dates based on tier logic
     const dates = getCronDates( CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 );
-    console.log( `[flight-cron] ${dates.length} dates to process` );
+    console.log( `[flight-cron][${ts()}] ${dates.length} dates to process` );
 
     // Generate all jobs — date-first so all routes for a given date are queued
     // together. This ensures the cache fills breadth-first (every route gets
@@ -57,10 +60,11 @@ export async function runFlightCron() {
         }
     }
 
-    console.log( `[flight-cron] ${jobs.length} total jobs (${ORIGIN_IATA_CODES.length} origins × ${DESTINATION_IATA_CODES.length} destinations × ${dates.length} dates)` );
+    console.log( `[flight-cron][${ts()}] ${jobs.length} total jobs (${ORIGIN_IATA_CODES.length} origins × ${DESTINATION_IATA_CODES.length} destinations × ${dates.length} dates)` );
 
     let successCount = 0;
     let failCount = 0;
+    let skipCount = 0;
 
     const queue = new PQueue( {
         concurrency: MAX_WORKERS,
@@ -71,9 +75,10 @@ export async function runFlightCron() {
     const tasks = jobs.map( job =>
         queue.add( () =>
             processFlightJob( job )
-                .then( () => { successCount++; } )
+                .then( ( skipped ) => { if ( skipped ) skipCount++; else successCount++; } )
                 .catch( async ( err ) => {
                     failCount++;
+                    console.error( `[flight-cron][${ts()}] FAILED: ${job.origin}->${job.dest} ${job.date} → ${classifyError( err )} — ${err.message?.slice( 0, 120 )}` );
                     await logFailure( cronRunId, job, err );
                 } ),
         ),
@@ -92,24 +97,34 @@ export async function runFlightCron() {
         } )
         .eq( 'id', cronRunId );
 
-    console.log( `[flight-cron] Completed run #${cronRunId}: ${successCount} success, ${failCount} failed out of ${jobs.length}` );
+    const skippedNote = skipCount > 0 ? `, ${skipCount} skipped (bad API response)` : '';
+    console.log( `[flight-cron][${ts()}] Completed run #${cronRunId}: ${successCount} success, ${failCount} failed${skippedNote} out of ${jobs.length}` );
 }
 
 /**
  * Processes a single flight cron job: search → parse → pick top 3 → upsert.
  */
 async function processFlightJob( { origin, dest, date } ) {
-    console.log( `[flight-cron] PROCESSING: ${origin}->${dest} for ${date}` );
     const returnDate = getReturnDate( date );
+    const route = `${origin}->${dest} ${date}`;
 
     // Call TripJack air-search-all (1 adult, economy, round-trip)
     const response = await searchFlights( origin, dest, date, returnDate, { ADULT: 1 } );
 
+    // TripJack sometimes returns HTTP 200 with no searchResult (rate-limited or bad session)
+    // instead of a proper 4xx. Skip silently — do NOT delete cached rows in this case.
+    const searchResult = response?.searchResult;
+    if ( !searchResult ) {
+        console.warn( `[flight-cron][${ts()}] ${route} → SKIPPED (API returned no searchResult, keeping cached data)` );
+        
+        return 'skip';
+    }
+
     // Parse COMBO results (international return always uses COMBO key)
-    const combos = response?.searchResult?.tripInfos?.COMBO;
+    const combos = searchResult?.tripInfos?.COMBO;
 
     if ( !combos || combos.length === 0 ) {
-        // No results — remove stale cache rows for this route-date
+        // Confirmed genuine "no flights" for this route-date — safe to clear stale cache
         await supabase
             .from( 'flight_price_cache' )
             .delete()
@@ -117,7 +132,7 @@ async function processFlightJob( { origin, dest, date } ) {
             .eq( 'destination_iata', dest )
             .eq( 'departure_date', date );
 
-        console.log( `[flight-cron] NO RESULTS: ${origin}->${dest} on ${date} (API returned no combos)` );
+        console.log( `[flight-cron][${ts()}] ${route} → EMPTY (API confirmed no flights on this route-date)` );
         
         return;
     }
@@ -163,16 +178,14 @@ async function processFlightJob( { origin, dest, date } ) {
     }
 
     if ( parsed.length === 0 ) {
-        const { error: delAllErr } = await supabase
+        await supabase
             .from( 'flight_price_cache' )
             .delete()
             .eq( 'origin_iata', origin )
             .eq( 'destination_iata', dest )
             .eq( 'departure_date', date );
-        
-        if ( !delAllErr ) {
-            console.log( `[flight-cron] REMOVED: No results found for ${origin}->${dest} on ${date}` );
-        }
+
+        console.log( `[flight-cron][${ts()}] ${route} → EMPTY (combos had no parseable prices)` );
         
         return;
     }
@@ -213,7 +226,7 @@ async function processFlightJob( { origin, dest, date } ) {
         throw new Error( `Upsert failed: ${upsertErr.message}` );
     }
 
-    console.log( `[flight-cron] WRITTEN: ${origin}->${dest} on ${date} (${top.length} ranks, ${resultCount} total results)` );
+    console.log( `[flight-cron][${ts()}] ${route} → WRITTEN (${top.length} ranks, ${resultCount} total results)` );
 
     // Delete stale ranks if fewer than TOP_N results exist
     if ( top.length < TOP_N_FLIGHTS ) {
@@ -227,7 +240,7 @@ async function processFlightJob( { origin, dest, date } ) {
                 .eq( 'rank', r );
 
             if ( !delErr ) {
-                console.log( `[flight-cron] CLEANUP: Removed stale rank ${r} for ${origin}->${dest} on ${date}` );
+                console.log( `[flight-cron][${ts()}] ${route} → CLEANUP rank ${r} (stale row removed)` );
             }
         }
     }
@@ -289,6 +302,6 @@ async function logFailure( cronRunId, job, err ) {
             error_message: ( err.message || 'Unknown error' ).slice( 0, 500 ),
         } );
     } catch ( logErr ) {
-        console.error( '[flight-cron] Failed to log failure:', logErr.message );
+        console.error( `[flight-cron][${ts()}] Failed to log failure to DB:`, logErr.message );
     }
 }
