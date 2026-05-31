@@ -97,6 +97,7 @@ export async function runFlightCron() {
  * Processes a single flight cron job: search → parse → pick top 3 → upsert.
  */
 async function processFlightJob( { origin, dest, date } ) {
+    console.log( `[flight-cron] PROCESSING: ${origin}->${dest} for ${date}` );
     const returnDate = getReturnDate( date );
 
     // Call TripJack air-search-all (1 adult, economy, round-trip)
@@ -158,12 +159,16 @@ async function processFlightJob( { origin, dest, date } ) {
     }
 
     if ( parsed.length === 0 ) {
-        await supabase
+        const { error: delAllErr } = await supabase
             .from( 'flight_price_cache' )
             .delete()
             .eq( 'origin_iata', origin )
             .eq( 'destination_iata', dest )
             .eq( 'departure_date', date );
+        
+        if ( !delAllErr ) {
+            console.log( `[flight-cron] REMOVED: No results found for ${origin}->${dest} on ${date}` );
+        }
         
         return;
     }
@@ -204,16 +209,22 @@ async function processFlightJob( { origin, dest, date } ) {
         throw new Error( `Upsert failed: ${upsertErr.message}` );
     }
 
+    console.log( `[flight-cron] WRITTEN: ${origin}->${dest} on ${date} (${top.length} ranks, ${resultCount} total results)` );
+
     // Delete stale ranks if fewer than TOP_N results exist
     if ( top.length < TOP_N_FLIGHTS ) {
         for ( let r = top.length + 1; r <= TOP_N_FLIGHTS; r++ ) {
-            await supabase
+            const { error: delErr } = await supabase
                 .from( 'flight_price_cache' )
                 .delete()
                 .eq( 'origin_iata', origin )
                 .eq( 'destination_iata', dest )
                 .eq( 'departure_date', date )
                 .eq( 'rank', r );
+
+            if ( !delErr ) {
+                console.log( `[flight-cron] CLEANUP: Removed stale rank ${r} for ${origin}->${dest} on ${date}` );
+            }
         }
     }
 }
