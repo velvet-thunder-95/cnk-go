@@ -5,7 +5,8 @@ import { CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 } from '../utils/constants.js';
 import { getCronDates } from '../utils/dateHelpers.js';
 import PQueue from 'p-queue';
 
-const BATCH_SIZE = 100;
+const BATCH_SIZE = process.env.BATCH_SIZE ;
+const ts = () => new Date().toISOString().slice(11, 19);
 
 export async function getHotelData() {
     const { data: hotels, error: hotelErr } = await supabase
@@ -29,6 +30,42 @@ export async function getHotelData() {
     return { batches, tjHotelIdToDbId };
 }
 
+async function getLastFetchedAtPerDate(dates, dbIds) {
+    const { data, error } = await supabase
+        .from('hotel_price_cache')
+        .select('check_in_date, fetched_at')
+        .in('hotel_id', dbIds)
+        .in('check_in_date', dates);
+
+    if (error) throw error;
+
+    const latest = new Map();
+    for (const row of data) {
+        const existing = latest.get(row.check_in_date);
+        if (!existing || new Date(row.fetched_at) > new Date(existing)) {
+            latest.set(row.check_in_date, row.fetched_at);
+        }
+    }
+
+    return latest;
+}
+
+function shouldSkipDate(date, lastFetchedAt) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const depDate = new Date(date);
+    depDate.setUTCHours(0, 0, 0, 0);
+    const dayDiff = Math.round((depDate - today) / 86400000);
+
+    if (dayDiff <= CACHE_DAYS_TIER1) return false;
+
+    if (!lastFetchedAt) return false;
+
+    const hoursSinceFetch = (Date.now() - new Date(lastFetchedAt).getTime()) / 3600000;
+
+    return hoursSinceFetch < 72;
+}
+
 export async function processHotelBatch(batch, checkInDate, checkOutDate, tjHotelIdToDbId, cronRunId, counts) {
     try {
         const data = await listHotels(
@@ -43,12 +80,12 @@ export async function processHotelBatch(batch, checkInDate, checkOutDate, tjHote
             throw new Error(data.errors?.[0]?.message || 'Hotel listing failed');
         }
 
-        const hotels          = data.hotels ?? [];
-        const returnedTjIds   = new Set(hotels.map(h => parseInt(h.hotelId)));
+        const hotels        = data.hotels ?? [];
+        const returnedTjIds = new Set(hotels.map(h => parseInt(h.hotelId)));
 
         const unavailableDbIds = batch
             .filter(tjId => !returnedTjIds.has(tjId))
-            .map(tjId  => tjHotelIdToDbId.get(tjId))
+            .map(tjId => tjHotelIdToDbId.get(tjId))
             .filter(Boolean);
 
         if (unavailableDbIds.length > 0) {
@@ -65,7 +102,7 @@ export async function processHotelBatch(batch, checkInDate, checkOutDate, tjHote
             .map(h => ({
                 hotel_id        : tjHotelIdToDbId.get(parseInt(h.hotelId)),
                 check_in_date   : checkInDate,
-                price_per_night : h.options[0].pricing.totalPrice,
+                price_per_night : Math.round(h.options[0].pricing.totalPrice * 100) / 100,
                 currency        : 'INR',
                 fetched_at      : new Date().toISOString(),
             }));
@@ -78,7 +115,7 @@ export async function processHotelBatch(batch, checkInDate, checkOutDate, tjHote
         }
 
         counts.success++;
-        console.log(`[${checkInDate}][batch] upserted: ${rows.length}, unavailable: ${unavailableDbIds.length}`);
+        console.log(`[${checkInDate}][${ts()}] upserted: ${rows.length}, unavailable: ${unavailableDbIds.length}`);
 
     } catch (err) {
         counts.fail++;
@@ -88,7 +125,7 @@ export async function processHotelBatch(batch, checkInDate, checkOutDate, tjHote
             job_params    : { date: checkInDate, batch_size: batch.length },
             error_message : err.message,
         });
-        console.error(`[${checkInDate}][batch] failed: ${err.message}`);
+        console.error(`[${checkInDate}][${ts()}] failed: ${err.message}`);
     }
 }
 
@@ -101,19 +138,29 @@ export async function runHotelCron() {
     if (cronRunErr) throw cronRunErr;
     const cronRunId = cronRun.id;
 
-    const dates              = getCronDates(CACHE_DAYS_TIER1, CACHE_DAYS_TIER2);
+    const dates                        = getCronDates(CACHE_DAYS_TIER1, CACHE_DAYS_TIER2);
     const { batches, tjHotelIdToDbId } = await getHotelData();
-    const counts             = { success: 0, fail: 0 };
-    const totalJobs          = dates.length * batches.length;
-    const queue              = new PQueue({ concurrency: parseInt(process.env.MAX_CONCURRENT_HOTEL_WORKERS) || 5 });
+    const allDbIds                     = [...tjHotelIdToDbId.values()];
+    const lastFetchedPerDate           = await getLastFetchedAtPerDate(dates, allDbIds);
+    const counts                       = { success: 0, fail: 0 };
+    const queue                        = new PQueue({ concurrency: parseInt(process.env.MAX_CONCURRENT_HOTEL_WORKERS) || 5 });
+
+    let skippedDates = 0;
+    let totalJobs    = 0;
 
     for (const date of dates) {
+        if (shouldSkipDate(date, lastFetchedPerDate.get(date))) {
+            skippedDates++;
+            continue;
+        }
+
         const checkInDate  = date;
         const checkOutObj  = new Date(date);
         checkOutObj.setUTCDate(checkOutObj.getUTCDate() + 1);
         const checkOutDate = checkOutObj.toISOString().slice(0, 10);
 
         for (const batch of batches) {
+            totalJobs++;
             queue.add(async () => {
                 await processHotelBatch(batch, checkInDate, checkOutDate, tjHotelIdToDbId, cronRunId, counts);
             });
@@ -134,5 +181,5 @@ export async function runHotelCron() {
 
     if (updateErr) console.error('[hotelCron] Failed to update cron_run:', updateErr.message);
 
-    console.log(`[hotelCron] Done — ${counts.success}/${totalJobs} succeeded, ${counts.fail} failed`);
+    console.log(`[hotelCron] Done — ${counts.success}/${totalJobs} succeeded, ${counts.fail} failed, ${skippedDates} dates skipped`);
 }

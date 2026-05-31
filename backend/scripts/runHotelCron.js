@@ -17,7 +17,6 @@ if (process.argv.includes('--now')) {
         });
 } else {
     console.log(`[hotel-cron] Scheduled at: ${CRON_SCHEDULE}`);
-    console.log('[hotel-cron] Waiting for next trigger... (Ctrl+C to stop)');
     cron.schedule(CRON_SCHEDULE, () => {
         console.log(`[hotel-cron] Triggered at ${new Date().toISOString()}`);
         runHotelCron().catch((err) => {
