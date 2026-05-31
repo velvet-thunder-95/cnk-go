@@ -191,7 +191,7 @@ async function processFlightJob( { origin, dest, date } ) {
         stops: flight.stops,
         departure_time: flight.departure_time,
         arrival_time: flight.arrival_time,
-        result_count: idx === 0 ? resultCount : null,
+        result_count: resultCount,
         currency: 'INR',
         fetched_at: now,
     } ) );
