@@ -2,7 +2,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
 // HMS client — hotel search, pricing, review
-const hmsClient = axios.create( {
+export const hmsClient = axios.create( {
     baseURL: process.env.TRIPJACK_HOTEL_BASE_URL,
     headers: {
         apikey: process.env.TRIPJACK_API_KEY,
