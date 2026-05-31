@@ -9,6 +9,8 @@
     "migrate": "node scripts/migrate.js",
     "cron:hotels" : "node scripts/runHotelCron.js" ,
     "cron:hotels:now": "node scripts/runHotelCron.js --now",
+    "cron:flights": "node scripts/runFlightCron.js",
+    "cron:flights:now": "node scripts/runFlightCron.js --now",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

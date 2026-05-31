@@ -1,0 +1,48 @@
+name: Flight Price Cron
+
+on:
+  schedule:
+    # Runs at 2:00 AM UTC daily — matches CRON_SCHEDULE in .env
+    - cron: '0 2 * * *'
+  workflow_dispatch: # allows manual trigger from GitHub Actions UI
+
+concurrency:
+  group: flight-cron-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-flight-cron:
+    name: Refresh flight_price_cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 120 # 4000 jobs at ~1 req/s ≈ 70 min; 120 is a safe ceiling
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run flight cron
+        working-directory: backend
+        run: npm run cron:flights:now
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          TRIPJACK_API_KEY: ${{ secrets.TRIPJACK_API_KEY }}
+          TRIPJACK_BASE_URL: ${{ secrets.TRIPJACK_BASE_URL }}
+          MAX_CONCURRENT_FLIGHT_WORKERS: ${{ vars.MAX_CONCURRENT_FLIGHT_WORKERS || '3' }}
+          FLIGHT_REQUESTS_PER_SECOND: ${{ vars.FLIGHT_REQUESTS_PER_SECOND || '3' }}
+          TOP_N_FLIGHTS: ${{ vars.TOP_N_FLIGHTS || '3' }}
+          CACHE_DAYS_TIER1: ${{ vars.CACHE_DAYS_TIER1 || '30' }}
+          CACHE_DAYS_TIER2: ${{ vars.CACHE_DAYS_TIER2 || '90' }}
+          REFERENCE_NIGHTS: ${{ vars.REFERENCE_NIGHTS || '5' }}
+          NODE_ENV: production

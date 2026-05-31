@@ -34,6 +34,6 @@ router.post('/cancel', cancelHotel);
 router.post('/fetch-hotels', fetchHotels);
 
 // GET /api/hotels/get-hotels                — Get all hotels from DB (for admin)
-router.get("/get-hotels", getHotelsFromDB);
+router.get('/get-hotels', getHotelsFromDB);
 
 export default router;

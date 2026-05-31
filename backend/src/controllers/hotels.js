@@ -200,9 +200,9 @@ export const cancelHotel = asyncHandler(async (req, res) => {
     return response(res, true, 200, 'Hotel booking cancelled successfully');
 });
 
-// ─── POST /api/hotels/fetch-hotels ────────────────────────────────────────────────────
-// H0 — One time setup , fetches all the static details of the hotels available in the api 
-// Body: {nextPageToken?} - pagination token for fetching next set of hotels , for ther first call it should be null or undefined , then it will return the nextPageToken in response which can be used for next call to fetch next set of hotels
+// ─── POST /api/hotels/fetch-hotels ─────────────────────────────────────────────
+// H0 — One-time setup. Fetches the full TripJack hotel catalogue page by page,
+// filters for target cities (up to 5 per star rating per city), and upserts into hotels.
 export const fetchHotels = asyncHandler(async (_req, res) => {
     let allRows = [];
 
