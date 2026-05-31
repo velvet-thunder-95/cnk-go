@@ -250,6 +250,18 @@ function pickTopFlights( sorted, n ) {
 }
 
 /**
+ * Classifies an axios/network error into a short stable code for the
+ * error_code column — avoids storing raw HTTP status numbers as 'UNKNOWN'.
+ */
+function classifyError( err ) {
+    if ( err.response?.status ) return String( err.response.status );
+    if ( err.message?.includes( 'timeout' ) || err.code === 'ECONNABORTED' ) return 'TIMEOUT';
+    if ( err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED' ) return 'NETWORK';
+    
+    return err.code || 'UNKNOWN';
+}
+
+/**
  * Logs a failed job to cron_job_failures table.
  */
 async function logFailure( cronRunId, job, err ) {
@@ -258,7 +270,7 @@ async function logFailure( cronRunId, job, err ) {
             cron_run_id: cronRunId,
             job_type: 'flight',
             job_params: { origin: job.origin, dest: job.dest, date: job.date },
-            error_code: err.response?.status?.toString() || 'UNKNOWN',
+            error_code: classifyError( err ),
             error_message: ( err.message || 'Unknown error' ).slice( 0, 500 ),
         } );
     } catch ( logErr ) {
