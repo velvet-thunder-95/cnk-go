@@ -49,11 +49,11 @@ async function fetchActiveHotels() {
     return { hotelIdBatches, tjIdToDbId };
 }
 
-async function fetchLatestFetchedTimestamps(checkInDates, databaseHotelIds) {
+async function fetchLatestFetchedTimestamps(checkInDates, dbHotelIds) {
     const { data: cachedRows, error: cachedRowsError } = await supabase
         .from('hotel_price_cache')
         .select('check_in_date, fetched_at')
-        .in('hotel_id', databaseHotelIds)
+        .in('hotel_id', dbHotelIds)
         .in('check_in_date', checkInDates);
 
     if (cachedRowsError) {
@@ -150,7 +150,7 @@ async function processHotelBatch(
             tjHotelIdBatch,
             checkInDate,
             checkOutDate,
-            [{ adults: 2, children: 1 }],
+            [{ adults: 2, children: 0 }],
             correlationId
         );
 
@@ -161,15 +161,15 @@ async function processHotelBatch(
         }
 
         const returnedHotels = listingResponse.hotels ?? [];
-        const returnedTripjackIds = new Set(
+        const returnedTjId = new Set(
             returnedHotels.map((hotel) => hotel.hotelId)
         );
 
         const unavailableDbIds = tjHotelIdBatch
             .filter(
-                (tripjackHotelId) => !returnedTripjackIds.has(tripjackHotelId)
+                (tjHotelId) => !returnedTjId.has(tjHotelId)
             )
-            .map((tripjackHotelId) => tjIdToDbId.get(tripjackHotelId))
+            .map((tjHotelId) => tjIdToDbId.get(tjHotelId))
             .filter(Boolean);
 
         if (unavailableDbIds.length > 0) {
@@ -252,10 +252,10 @@ export async function runHotelCron() {
     const cronRunId = cronRunRecord.id;
     const checkInDates = getCronDates(CACHE_DAYS_TIER1, CACHE_DAYS_TIER2);
     const { hotelIdBatches, tjIdToDbId } = await fetchActiveHotels();
-    const allDatabaseHotelIds = [...tjIdToDbId.values()];
+    const allDbHotelIds = [...tjIdToDbId.values()];
     const latestFetchedAtPerDate = await fetchLatestFetchedTimestamps(
         checkInDates,
-        allDatabaseHotelIds
+        allDbHotelIds
     );
 
     const jobCounts = { successCount: 0, failCount: 0 };
@@ -264,7 +264,7 @@ export async function runHotelCron() {
     let totalJobCount = 0;
 
     console.log(
-        `[hotel-cron][${currentTimestamp()}] Run #${cronRunId} — ${checkInDates.length} dates, ${hotelIdBatches.length} batches per date, ${allDatabaseHotelIds.length} active hotels`
+        `[hotel-cron][${currentTimestamp()}] Run #${cronRunId} — ${checkInDates.length} dates, ${hotelIdBatches.length} batches per date, ${allDbHotelIds.length} active hotels`
     );
 
     for (const checkInDate of checkInDates) {
