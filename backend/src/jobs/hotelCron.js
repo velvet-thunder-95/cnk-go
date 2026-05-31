@@ -154,7 +154,7 @@ async function processHotelBatch(
             tripjackHotelIdBatch,
             checkInDate,
             checkOutDate,
-            [{ adults: 2, children: 0 }],
+            [{ adults: 2, children: 1 }],
             correlationId
         );
 
@@ -323,5 +323,3 @@ export async function runHotelCron() {
         `[hotel-cron][${currentTimestamp()}] Completed run #${cronRunId}: ${jobCounts.successCount}/${totalJobCount} succeeded, ${jobCounts.failCount} failed, ${skippedDateCount} dates skipped`
     );
 }
-
-runHotelCron() ;
