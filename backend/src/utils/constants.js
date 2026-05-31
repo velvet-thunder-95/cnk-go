@@ -32,3 +32,8 @@ export const ORIGIN_IATA_CODES = [ 'DEL', 'BOM', 'BLR', 'MAA', 'HYD', 'CCU', 'AM
 
 /** Destination city IATA codes */
 export const DESTINATION_IATA_CODES = [ 'DXB', 'SIN', 'BKK', 'LHR', 'CDG', 'JFK', 'NRT', 'HKG', 'DPS', 'KUL' ];
+
+/** Used in hotel cron in skipping logic , change as per needs */
+export const MILLISECONDS_PER_HOUR = 3_600_000;
+export const MILLISECONDS_PER_DAY = 86_400_000;
+export const TIER_2_FRESHNESS_HOURS = 72;

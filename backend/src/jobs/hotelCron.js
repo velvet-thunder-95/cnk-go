@@ -3,7 +3,7 @@ import PQueue from 'p-queue';
 import supabase from '../config/supabaseClient.js';
 import { listHotels } from '../clients/tripjack/hotelClient.js';
 import { getCronDates } from '../utils/dateHelpers.js';
-import { CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 } from '../utils/constants.js';
+import { CACHE_DAYS_TIER1, CACHE_DAYS_TIER2, MILLISECONDS_PER_DAY, MILLISECONDS_PER_HOUR, TIER_2_FRESHNESS_HOURS } from '../utils/constants.js';
 
 const HOTEL_BATCH_SIZE = process.env.BATCH_SIZE
     ? parseInt(process.env.BATCH_SIZE, 10)
@@ -11,10 +11,6 @@ const HOTEL_BATCH_SIZE = process.env.BATCH_SIZE
 
 const MAX_CONCURRENT_HOTEL_WORKERS =
   parseInt(process.env.MAX_CONCURRENT_HOTEL_WORKERS, 10) || 5;
-
-const MILLISECONDS_PER_HOUR = 3_600_000;
-const MILLISECONDS_PER_DAY = 86_400_000;
-const TIER_2_FRESHNESS_HOURS = 72;
 
 function currentTimestamp() {
     return new Date().toISOString().slice(11, 19);
@@ -32,25 +28,25 @@ async function fetchActiveHotels() {
         );
     }
 
-    const tripjackIdToDatabaseId = new Map();
+    const tjIdToDbId = new Map();
     for (const hotel of activeHotels) {
-        tripjackIdToDatabaseId.set(hotel.tj_hotel_id, hotel.id);
+        tjIdToDbId.set(hotel.tj_hotel_id, hotel.id);
     }
 
-    const allTripjackHotelIds = [...tripjackIdToDatabaseId.keys()];
+    const allTjHotelIds = [...tjIdToDbId.keys()];
 
     const hotelIdBatches = [];
     for (
         let batchStart = 0;
-        batchStart < allTripjackHotelIds.length;
+        batchStart < allTjHotelIds.length;
         batchStart += HOTEL_BATCH_SIZE
     ) {
         hotelIdBatches.push(
-            allTripjackHotelIds.slice(batchStart, batchStart + HOTEL_BATCH_SIZE)
+            allTjHotelIds.slice(batchStart, batchStart + HOTEL_BATCH_SIZE)
         );
     }
 
-    return { hotelIdBatches, tripjackIdToDatabaseId };
+    return { hotelIdBatches, tjIdToDbId };
 }
 
 async function fetchLatestFetchedTimestamps(checkInDates, databaseHotelIds) {
@@ -140,18 +136,18 @@ async function logJobFailure(cronRunId, checkInDate, batchSize, error) {
 }
 
 async function processHotelBatch(
-    tripjackHotelIdBatch,
+    tjHotelIdBatch,
     checkInDate,
     checkOutDate,
-    tripjackIdToDatabaseId,
+    tjIdToDbId,
     cronRunId,
     jobCounts
 ) {
     try {
-        const correlationId = `cnkgo-cron-${checkInDate}-${tripjackHotelIdBatch.length}`;
+        const correlationId = `cnkgo-cron-${checkInDate}-${tjHotelIdBatch.length}`;
 
         const listingResponse = await listHotels(
-            tripjackHotelIdBatch,
+            tjHotelIdBatch,
             checkInDate,
             checkOutDate,
             [{ adults: 2, children: 1 }],
@@ -169,18 +165,18 @@ async function processHotelBatch(
             returnedHotels.map((hotel) => hotel.hotelId)
         );
 
-        const unavailableDatabaseIds = tripjackHotelIdBatch
+        const unavailableDbIds = tjHotelIdBatch
             .filter(
                 (tripjackHotelId) => !returnedTripjackIds.has(tripjackHotelId)
             )
-            .map((tripjackHotelId) => tripjackIdToDatabaseId.get(tripjackHotelId))
+            .map((tripjackHotelId) => tjIdToDbId.get(tripjackHotelId))
             .filter(Boolean);
 
-        if (unavailableDatabaseIds.length > 0) {
+        if (unavailableDbIds.length > 0) {
             const { error: deleteError } = await supabase
                 .from('hotel_price_cache')
                 .delete()
-                .in('hotel_id', unavailableDatabaseIds)
+                .in('hotel_id', unavailableDbIds)
                 .eq('check_in_date', checkInDate);
 
             if (deleteError) {
@@ -195,10 +191,10 @@ async function processHotelBatch(
                 (hotel) =>
                     hotel.options?.[0]?.pricing?.totalPrice !== null &&
                 hotel.options?.[0]?.pricing?.totalPrice !== undefined &&
-          tripjackIdToDatabaseId.has(hotel.hotelId)
+          tjIdToDbId.has(hotel.hotelId)
             )
             .map((hotel) => ({
-                hotel_id: tripjackIdToDatabaseId.get(hotel.hotelId),
+                hotel_id: tjIdToDbId.get(hotel.hotelId),
                 check_in_date: checkInDate,
                 price_per_night: Math.round(hotel.options[0].pricing.totalPrice * 100) / 100,
                 currency: 'INR',
@@ -218,14 +214,14 @@ async function processHotelBatch(
         jobCounts.successCount++;
 
         console.log(
-            `[hotel-cron][${currentTimestamp()}][${checkInDate}] Upserted ${cacheRows.length} prices, deleted ${unavailableDatabaseIds.length} unavailable`
+            `[hotel-cron][${currentTimestamp()}][${checkInDate}] Upserted ${cacheRows.length} prices, deleted ${unavailableDbIds.length} unavailable`
         );
     } catch (error) {
         jobCounts.failCount++;
         await logJobFailure(
             cronRunId,
             checkInDate,
-            tripjackHotelIdBatch.length,
+            tjHotelIdBatch.length,
             error
         );
         console.error(
@@ -255,8 +251,8 @@ export async function runHotelCron() {
 
     const cronRunId = cronRunRecord.id;
     const checkInDates = getCronDates(CACHE_DAYS_TIER1, CACHE_DAYS_TIER2);
-    const { hotelIdBatches, tripjackIdToDatabaseId } = await fetchActiveHotels();
-    const allDatabaseHotelIds = [...tripjackIdToDatabaseId.values()];
+    const { hotelIdBatches, tjIdToDbId } = await fetchActiveHotels();
+    const allDatabaseHotelIds = [...tjIdToDbId.values()];
     const latestFetchedAtPerDate = await fetchLatestFetchedTimestamps(
         checkInDates,
         allDatabaseHotelIds
@@ -293,7 +289,7 @@ export async function runHotelCron() {
                     hotelIdBatch,
                     checkInDate,
                     checkOutDate,
-                    tripjackIdToDatabaseId,
+                    tjIdToDbId,
                     cronRunId,
                     jobCounts
                 )
