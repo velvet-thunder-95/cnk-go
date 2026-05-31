@@ -5,7 +5,8 @@ import { CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 } from '../utils/constants.js';
 import { getCronDates } from '../utils/dateHelpers.js';
 import PQueue from 'p-queue';
 
-const BATCH_SIZE = process.env.BATCH_SIZE ;
+const BATCH_SIZE = 100;
+
 const ts = () => new Date().toISOString().slice(11, 19);
 
 export async function getHotelData() {
@@ -51,19 +52,19 @@ async function getLastFetchedAtPerDate(dates, dbIds) {
 }
 
 function shouldSkipDate(date, lastFetchedAt) {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const depDate = new Date(date);
-    depDate.setUTCHours(0, 0, 0, 0);
-    const dayDiff = Math.round((depDate - today) / 86400000);
+    const todayMidnightUTC = new Date();
+    todayMidnightUTC.setUTCHours(0, 0, 0, 0);
+    const checkInMidnightUTC = new Date(date);
+    checkInMidnightUTC.setUTCHours(0, 0, 0, 0);
+    const daysFromToday = Math.round((checkInMidnightUTC - todayMidnightUTC) / 86400000);
 
-    if (dayDiff <= CACHE_DAYS_TIER1) return false;
+    if (daysFromToday <= CACHE_DAYS_TIER1) return false;
 
     if (!lastFetchedAt) return false;
 
-    const hoursSinceFetch = (Date.now() - new Date(lastFetchedAt).getTime()) / 3600000;
+    const hoursSinceLastFetch = (Date.now() - new Date(lastFetchedAt).getTime()) / 3600000;
 
-    return hoursSinceFetch < 72;
+    return hoursSinceLastFetch < 72;
 }
 
 export async function processHotelBatch(batch, checkInDate, checkOutDate, tjHotelIdToDbId, cronRunId, counts) {
