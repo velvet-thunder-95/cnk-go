@@ -1,8 +1,6 @@
 name: Flight Price Cron
 
 on:
-  push:
-    branches: [feat/flight-cron] # Temporarily add push to force detection
   schedule:
     # Runs at 2:00 AM UTC daily — matches CRON_SCHEDULE in .env
     - cron: '0 2 * * *'
