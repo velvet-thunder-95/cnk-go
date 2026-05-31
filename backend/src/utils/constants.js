@@ -31,4 +31,4 @@ export const CACHE_STALE_HOURS = 48;
 export const ORIGIN_IATA_CODES = [ 'DEL', 'BOM', 'BLR', 'MAA', 'HYD', 'CCU', 'AMD', 'COK' ];
 
 /** Destination city IATA codes */
-export const DESTINATION_IATA_CODES = [ 'DXB', 'SIN', 'BKK', 'LHR', 'CDG', 'JFK', 'NRT', 'SYD', 'DPS', 'KUL' ];
+export const DESTINATION_IATA_CODES = [ 'DXB', 'SIN', 'BKK', 'LHR', 'CDG', 'JFK', 'NRT', 'HKG', 'DPS', 'KUL' ];

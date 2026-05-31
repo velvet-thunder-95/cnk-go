@@ -156,3 +156,23 @@ export async function cancelHotel( bookingId ) {
     
     return data;
 }
+
+// ─── Hotel Details ─────────────────────────────────────────────────────────────
+/**
+ * Fetch static hotel catalogue with pagination.
+ * Used in one-time setup to populate the hotels table.
+ * @param {string|null} next  Pagination cursor from previous response (null for first page)
+ * @returns {Promise<{ data: object[], nextToken: string|null }>}
+ */
+export async function fetchHotels(next) {
+    const res = await omsClient.post(
+        `/hms/v3/fetch-static-hotels`,
+        next ? { next } : {},
+        { timeout: 60000 }
+    );
+
+    return {
+        data: res.data.hotelOpInfos,
+        nextToken: res.data.next,
+    };
+}

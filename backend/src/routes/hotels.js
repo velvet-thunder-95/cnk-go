@@ -6,6 +6,8 @@ import {
     bookHotel,
     getBookingDetails,
     cancelHotel,
+    getHotelsFromDB,
+    fetchHotels,
 } from '../controllers/hotels.js';
 
 const router = Router();
@@ -27,5 +29,11 @@ router.get('/booking-details/:bookingId', getBookingDetails);
 
 // POST /api/hotels/cancel                  — Cancel booking
 router.post('/cancel', cancelHotel);
+
+// POST /api/hotels/fetch-hotels                — H0: One-time fetch of all hotels (static details)
+router.post('/fetch-hotels', fetchHotels);
+
+// GET /api/hotels/get-hotels                — Get all hotels from DB (for admin)
+router.get('/get-hotels', getHotelsFromDB);
 
 export default router;
