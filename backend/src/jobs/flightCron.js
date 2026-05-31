@@ -22,6 +22,8 @@ const REQUESTS_PER_SECOND = Number( process.env.FLIGHT_REQUESTS_PER_SECOND ) || 
 export async function runFlightCron() {
     const startedAt = new Date().toISOString();
 
+    console.log( `[flight-cron] STARTING: Workers=${MAX_WORKERS}, RateLimit=${REQUESTS_PER_SECOND}/s` );
+
     // Create cron_runs entry
     const { data: cronRun, error: cronErr } = await supabase
         .from( 'cron_runs' )

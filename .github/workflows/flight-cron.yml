@@ -8,6 +8,10 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch: # allows manual trigger from GitHub Actions UI
 
+concurrency:
+  group: flight-cron-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-flight-cron:
     name: Refresh flight_price_cache
