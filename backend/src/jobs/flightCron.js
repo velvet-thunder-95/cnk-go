@@ -42,11 +42,14 @@ export async function runFlightCron() {
     const dates = getCronDates( CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 );
     console.log( `[flight-cron] ${dates.length} dates to process` );
 
-    // Generate all jobs (route × date)
+    // Generate all jobs — date-first so all routes for a given date are queued
+    // together. This ensures the cache fills breadth-first (every route gets
+    // at least 1 date populated) rather than depth-first (50 dates for DEL→DXB
+    // before BOM→SIN gets a single row).
     const jobs = [];
-    for ( const origin of ORIGIN_IATA_CODES ) {
-        for ( const dest of DESTINATION_IATA_CODES ) {
-            for ( const date of dates ) {
+    for ( const date of dates ) {
+        for ( const origin of ORIGIN_IATA_CODES ) {
+            for ( const dest of DESTINATION_IATA_CODES ) {
                 jobs.push( { origin, dest, date } );
             }
         }
