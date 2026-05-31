@@ -116,6 +116,8 @@ async function processFlightJob( { origin, dest, date } ) {
             .eq( 'origin_iata', origin )
             .eq( 'destination_iata', dest )
             .eq( 'departure_date', date );
+
+        console.log( `[flight-cron] NO RESULTS: ${origin}->${dest} on ${date} (API returned no combos)` );
         
         return;
     }
