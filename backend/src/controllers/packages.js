@@ -35,8 +35,8 @@ export const searchDestinations = asyncHandler(async (req, res) => {
     if (isNaN(parsedNights) || parsedNights < 1) return response(res, false, 400, 'nights must be a positive integer');
     if (isNaN(parsedAdults) || parsedAdults < 1) return response(res, false, 400, 'adults must be at least 1');
     if (isNaN(parsedChildren)) return response(res, false, 400, 'children must be 0 or more');
-    if (parsedRooms !== undefined && parsedRooms < 1) return response(res, false, 400, 'rooms must be at least 1');
-    if (parsedStars !== undefined && (parsedStars < 1 || parsedStars > 5)) {
+    if (parsedRooms !== undefined && (isNaN(parsedRooms) || parsedRooms < 1)) return response(res, false, 400, 'rooms must be at least 1');
+    if (parsedStars !== undefined && (isNaN(parsedStars) || parsedStars < 1 || parsedStars > 5)) {
         return response(res, false, 400, 'stars must be between 1 and 5');
     }
 
@@ -179,7 +179,7 @@ export const getCalendar = asyncHandler(async (req, res) => {
     if (isNaN(parsedNights) || parsedNights < 1) return response(res, false, 400, 'nights must be a positive integer');
     if (isNaN(parsedAdults) || parsedAdults < 1) return response(res, false, 400, 'adults must be at least 1');
     if (isNaN(parsedChildren)) return response(res, false, 400, 'children must be 0 or more');
-    if (parsedRooms !== undefined && parsedRooms < 1) return response(res, false, 400, 'rooms must be at least 1');
+    if (parsedRooms !== undefined && (isNaN(parsedRooms) || parsedRooms < 1)) return response(res, false, 400, 'rooms must be at least 1');
 
     const minimumRooms = minRooms(parsedAdults, parsedChildren);
     const requestedRooms = parsedRooms ?? minimumRooms;

@@ -38,6 +38,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           TRIPJACK_API_KEY: ${{ secrets.TRIPJACK_API_KEY }}
+          TRIPJACK_BASE_URL: ${{ secrets.TRIPJACK_BASE_URL }}
           TRIPJACK_HOTEL_BASE_URL: ${{ secrets.TRIPJACK_HOTEL_BASE_URL }}
           MAX_CONCURRENT_HOTEL_WORKERS: ${{ vars.MAX_CONCURRENT_HOTEL_WORKERS || '1' }}
           CACHE_DAYS_TIER1: ${{ vars.CACHE_DAYS_TIER1 || '30' }}
