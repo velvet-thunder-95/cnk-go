@@ -530,7 +530,13 @@ export async function orchestrateBooking( {
     if ( !Array.isArray( roomConfig ) || roomConfig.length === 0 ) {
         return { success: false, error: 'Booking room_config is missing. Recreate the booking with rooms[] from the frontend.' };
     }
-    if ( !hotelBookingId || !flightBookingId || Number.isNaN( hotelAmount ) || Number.isNaN( flightAmount ) ) {
+    // Guard: amounts must be real positive numbers.
+    // Note: Number(null) === 0 (not NaN), so we must also check for null explicitly.
+    if (
+        !hotelBookingId || !flightBookingId ||
+        booking.hotel_amount === null || booking.flight_amount === null ||
+        Number.isNaN( hotelAmount ) || Number.isNaN( flightAmount )
+    ) {
         return { success: false, error: 'Booking must be reviewed before it can be confirmed' };
     }
 

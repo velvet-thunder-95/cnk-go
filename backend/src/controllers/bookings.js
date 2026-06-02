@@ -2,11 +2,14 @@ import supabase from '../config/supabaseClient.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import response from '../utils/response.js';
 import { orchestrateBooking, reviewPackageBooking } from '../services/bookingOrchestrator.js';
+import { MAX_CHILD_AGE } from '../utils/constants.js';
 
 // ─── Passenger Validation ─────────────────────────────────────────────────────
 
 const VALID_TITLES    = [ 'Mr', 'Mrs', 'Ms', 'Miss', 'Master', 'Dr' ];
 const VALID_PAX_TYPES = [ 'adult', 'child' ];
+// 'O' (Other) is accepted internally; TripJack has no gender field so no mapping needed.
+const VALID_GENDERS   = [ 'M', 'F', 'O' ];
 
 function parseNonNegativeInt( value ) {
     const parsed = parseInt( value, 10 );
@@ -46,10 +49,10 @@ function normalizeRoomConfig( rooms ) {
             const invalidAge = rawChildAges.some( age => {
                 const parsedAge = parseNonNegativeInt( age );
 
-                return Number.isNaN( parsedAge ) || parsedAge > 17;
+                return Number.isNaN( parsedAge ) || parsedAge > MAX_CHILD_AGE;
             } );
 
-            if ( invalidAge ) return { error: `${label}: childAge values must be between 0 and 17` };
+            if ( invalidAge ) return { error: `${label}: childAge values must be between 0 and ${MAX_CHILD_AGE}` };
         }
 
         const childAge = roomChildren > 0
@@ -85,10 +88,14 @@ function validatePassenger( p, idx ) {
     if ( !p.pax_type || !VALID_PAX_TYPES.includes( p.pax_type ) ) {
         return `${label}: pax_type must be one of ${VALID_PAX_TYPES.join( ', ' )}`;
     }
-    if ( !p.gender || ![ 'M', 'F' ].includes( p.gender ) ) {
-        return `${label}: gender must be M or F`;
+    if ( !p.gender || !VALID_GENDERS.includes( p.gender ) ) {
+        return `${label}: gender must be one of ${VALID_GENDERS.join( ', ' )}`;
     }
     if ( !p.date_of_birth ) return `${label}: date_of_birth is required (YYYY-MM-DD)`;
+    // Validate strict YYYY-MM-DD format
+    if ( !/^\d{4}-\d{2}-\d{2}$/.test( p.date_of_birth ) || Number.isNaN( Date.parse( p.date_of_birth ) ) ) {
+        return `${label}: date_of_birth must be a valid date in YYYY-MM-DD format`;
+    }
     if ( !p.nationality   ) return `${label}: nationality is required (ISO 3166-1 alpha-2, e.g. IN)`;
     
     return null;
@@ -106,10 +113,11 @@ function validatePassenger( p, idx ) {
 //   nights, adults, children, child_ages (int[]),
 //   rooms: [{ adults, children, childAge? }],
 //   hotel_id (our DB id for the selected hotel),
+//   preferred_airline_code? (IATA code the user selected on detail page, e.g. 'AI'),
 //   estimated_flight_cost, estimated_hotel_cost (optional — from cache display price),
 //   passengers: [
 //     {
-//       title, first_name, last_name, pax_type, gender, date_of_birth,
+//       title, first_name, last_name, pax_type, gender (M/F/O), date_of_birth,
 //       nationality, is_lead (bool — exactly one must be true),
 //       email?, phone?, phone_country_code?,
 //       passport_number?, passport_expiry?,
@@ -130,6 +138,7 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
         child_ages,
         rooms,
         hotel_id,
+        preferred_airline_code,
         estimated_flight_cost,
         estimated_hotel_cost,
         passengers,
@@ -228,8 +237,9 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
             child_ages:            child_ages ?? ( computedChildAges.length ? computedChildAges : null ),
             rooms:                 roomConfig.rooms.length,
             room_config:           roomConfig.rooms,
-            hotel_id:              hotel_id ?? null,
-            estimated_flight_cost: estimated_flight_cost ?? null,
+            hotel_id:                hotel_id              ?? null,
+            preferred_airline_code:  preferred_airline_code ? preferred_airline_code.toUpperCase() : null,
+            estimated_flight_cost:   estimated_flight_cost  ?? null,
             estimated_hotel_cost:  estimated_hotel_cost  ?? null,
             estimated_total,
             status:                'initiated',
@@ -281,10 +291,10 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
 // This should be called only after passenger details are saved and the user is
 // ready to see the final confirmation screen.
 //
-// Body:
+// Body: (all fields optional)
 // {
-//   hotelOptionId?: string,       // optional; if absent, cheapest current hotel option is used
-//   flightAirlineCode?: string    // optional; if absent, cheapest current flight option is used
+//   hotelOptionId?: string,       // if absent, cheapest hotel option from live pricing is used
+//   flightAirlineCode?: string    // overrides booking.preferred_airline_code for this review only
 // }
 
 export const reviewBooking = asyncHandler( async ( req, res ) => {
@@ -292,6 +302,9 @@ export const reviewBooking = asyncHandler( async ( req, res ) => {
     if ( isNaN( bookingId ) ) return response( res, false, 400, 'Invalid booking id' );
 
     const { hotelOptionId, flightAirlineCode } = req.body;
+
+    // flightAirlineCode in the request body overrides the persisted preference.
+    // This lets the frontend allow the user to change airline at review time.
 
     const { data: booking, error: bookingErr } = await supabase
         .from( 'bookings' )
@@ -308,7 +321,8 @@ export const reviewBooking = asyncHandler( async ( req, res ) => {
     const result = await reviewPackageBooking( {
         booking,
         hotelOptionId,
-        flightAirlineCode,
+        // Body takes priority; fall back to what was saved at initiation.
+        flightAirlineCode: flightAirlineCode ?? booking.preferred_airline_code ?? null,
     } );
 
     if ( !result.success ) {
