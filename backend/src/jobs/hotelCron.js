@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import PQueue from 'p-queue';
 import supabase from '../config/supabaseClient.js';
 import { listHotels } from '../clients/tripjack/hotelClient.js';
@@ -15,12 +14,12 @@ const HOTEL_BATCH_SIZE =
   parseInt(process.env.HOTEL_BATCH_SIZE, 10) || 100;  
 
 /**
-     * Loads all active hotels from the DB and returns:
-     *  - tjIdToDbId: Map<tj_hotel_id (string) → db id (number)>
-     *  - hotelIdBatches: tj_hotel_id strings split into chunks of HOTEL_BATCH_SIZE
-     *
-     * @returns {Promise<{ tjIdToDbId: Map<string,number>, hotelIdBatches: string[][] }>}
-     */
+ * Loads all active hotels from the DB and returns:
+ *  - tjIdToDbId: Map<tj_hotel_id (string) → db id (number)>
+ *  - hotelIdBatches: tj_hotel_id strings split into chunks of HOTEL_BATCH_SIZE
+ *
+ * @returns {Promise<{ tjIdToDbId: Map<string,number>, hotelIdBatches: string[][] }>}
+ */
 async function fetchActiveHotels() {
     const { data: activeHotels, error } = await supabase
         .from('hotels')
@@ -49,11 +48,11 @@ async function fetchActiveHotels() {
 // ─── Error Helpers ───────────────────────────────────────────────────────────
 
 /**
-     * Derives a short error code string from an axios or generic error.
-     *
-     * @param {Error} error
-     * @returns {string}
-     */
+ * Derives a short error code string from an axios or generic error.
+ *
+ * @param {Error} error
+ * @returns {string}
+ */
 function classifyError(error) {
     if (error.response?.status) return String(error.response.status);
     if (error.message?.includes('timeout') || error.code === 'ECONNABORTED') return 'TIMEOUT';
@@ -93,17 +92,17 @@ async function logJobFailure(cronRunId, checkInDate, batchSize, error) {
 // ─── Core Batch Processor ────────────────────────────────────────────────────
 
 /**
-     * Fetches live hotel prices for one (batch × date) combination from TripJack,
-     * upserts available hotels into hotel_price_cache, and deletes rows for any
-     * hotels in the batch that had no availability on that date.
-     *
-     * @param {string[]}        tjHotelIdBatch  TripJack hotel IDs to query
-     * @param {string}          checkInDate     YYYY-MM-DD
-     * @param {string}          checkOutDate    YYYY-MM-DD (always checkIn + 1)
-     * @param {Map<string,number>} tjIdToDbId   TripJack ID → DB row id
-     * @param {number}          cronRunId
-     * @param {{ successCount: number, failCount: number }} jobCounts  Mutated in place
-     */
+ * Fetches live hotel prices for one (batch × date) combination from TripJack,
+ * upserts available hotels into hotel_price_cache, and deletes rows for any
+ * hotels in the batch that had no availability on that date.
+ *
+ * @param {string[]}        tjHotelIdBatch  TripJack hotel IDs to query
+ * @param {string}          checkInDate     YYYY-MM-DD
+ * @param {string}          checkOutDate    YYYY-MM-DD (always checkIn + 1)
+ * @param {Map<string,number>} tjIdToDbId   TripJack ID → DB row id
+ * @param {number}          cronRunId
+ * @param {{ successCount: number, failCount: number }} jobCounts  Mutated in place
+ */
 async function processHotelBatch(
     tjHotelIdBatch,
     checkInDate,
@@ -198,15 +197,15 @@ async function processHotelBatch(
 // ─── Main Export ─────────────────────────────────────────────────────────────
 
 /**
-     * Entry point for the nightly hotel price cron.
-     *
-     * Generates the dates to fetch (tier 1 daily + tier 2 every-3rd-day rotation),
-     * then fans out one p-queue job per (date × hotel-batch) combination.
-     *
-     * Scale reference (all 90 hotels split into 1 batch of 100):
-     *   ~30 tier-1 dates + ~20 tier-2 dates = ~50 queue jobs per run
-     *   At 5 workers → finishes in roughly 3 minutes.
-     */
+ * Entry point for the nightly hotel price cron.
+ *
+ * Generates the dates to fetch (tier 1 daily + tier 2 every-3rd-day rotation),
+ * then fans out one p-queue job per (date × hotel-batch) combination.
+ *
+ * Scale reference (all 90 hotels split into 1 batch of 100):
+ *   ~30 tier-1 dates + ~20 tier-2 dates = ~50 queue jobs per run
+ *   At 5 workers → finishes in roughly 3 minutes.
+ */
 export async function runHotelCron() {
     const startedAt = new Date().toISOString();
 
