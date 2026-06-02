@@ -21,7 +21,7 @@ export const CACHE_DAYS_TIER1 = Number( process.env.CACHE_DAYS_TIER1 ) || 30;
 /** Refresh dates beyond tier 1 up to this limit every 3 days (tier 2) */
 export const CACHE_DAYS_TIER2 = Number( process.env.CACHE_DAYS_TIER2 ) || 90;
 
-// Fetch every Nth date in tier 2 to keep total API calls manageable, while ensuring all dates
+/** Fetch every Nth date in tier 2 to keep total API calls manageable, while ensuring all dates */
 export const TIER2_STEP = 3;
 
 /** TripJack nationality code for India (must be a string, not integer) */

@@ -5,7 +5,10 @@ import { CACHE_DAYS_TIER2, DESTINATION_IATA_CODES, MILLISECONDS_PER_DAY, ORIGIN_
 /** Returns current time as HH:MM:SS for log prefixes. */
 const ts = () => new Date().toISOString().slice( 11, 19 );
 
-// this function again because the one in dataHelper is returning 50 dates => 5 weeks , but we need ~13 weeks => 90 days
+/**
+ * Generates an array of date strings (YYYY-MM-DD) for the next N days,
+ * where N = tier2Days.
+ */
 export function getCronDatesForWeeklyAggregator( tier2Days ) {
     const dates = [];
     const today = new Date();
@@ -19,6 +22,10 @@ export function getCronDatesForWeeklyAggregator( tier2Days ) {
     return dates;
 }
 
+/**
+ * Given a date string (YYYY-MM-DD), returns the Monday of that week as a 
+ * string (YYYY-MM-DD).
+ */
 function getWeekStartDate( dateStr ) {
     const date        = new Date( dateStr );
     const dayOfWeek   = date.getUTCDay();
@@ -28,6 +35,10 @@ function getWeekStartDate( dateStr ) {
     return monday.toISOString().slice( 0, 10 );
 }
 
+/**
+ * Fetches a map of destination IATA codes to their corresponding
+ * destination IDs from the database,
+ */
 async function fetchDestinationIdMap() {
     const { data, error } = await supabase
         .from( 'destinations' )
@@ -60,6 +71,10 @@ async function fetchDestinationToHotelIdsMap( destinationIds ) {
     return destinationIdToHotelIds;
 }
 
+/**
+ * Fetches flight price cache entries for the given dates for 
+ * rank 1 (cheapest) flights
+ */
 async function fetchFlightPriceMap( dates ) {
     const { data, error } = await supabase
         .from( 'flight_price_cache' )
@@ -82,6 +97,10 @@ async function fetchFlightPriceMap( dates ) {
     return flightPriceMap;
 }
 
+/**
+ * Fetches hotel price cache entries for the given hotel IDs 
+ * for a given date 
+ */
 async function fetchHotelPriceMap( allHotelIds, dates ) {
     const { data, error } = await supabase
         .from( 'hotel_price_cache' )
