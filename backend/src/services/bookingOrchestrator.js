@@ -278,13 +278,20 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
 
     const correlationId = generateCorrelationId( booking.id );
 
-    const hotelPricing = await hotelClient.priceHotel(
-        hotel.tj_hotel_id,
-        booking.departure_date,
-        booking.return_date,
-        roomConfig,
-        correlationId,
-    );
+    let hotelPricing;
+    try {
+        hotelPricing = await hotelClient.priceHotel(
+            hotel.tj_hotel_id,
+            booking.departure_date,
+            booking.return_date,
+            roomConfig,
+            correlationId,
+        );
+    } catch ( err ) {
+        await updateBooking( booking.id, { status: 'review_failed' } );
+        
+        return { success: false, error: getProviderError( err.response?.data ?? err, 'Hotel pricing failed at provider' ) };
+    }
 
     if ( isProviderFailure( hotelPricing ) ) {
         await updateBooking( booking.id, { status: 'review_failed' } );
@@ -299,12 +306,19 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
         return { success: false, error: 'No hotel option is available for the selected room configuration' };
     }
 
-    const hotelReview = await hotelClient.reviewHotel(
-        hotelOption.optionId,
-        hotelPricing.reviewHash,
-        hotel.tj_hotel_id,
-        correlationId,
-    );
+    let hotelReview;
+    try {
+        hotelReview = await hotelClient.reviewHotel(
+            hotelOption.optionId,
+            hotelPricing.reviewHash,
+            hotel.tj_hotel_id,
+            correlationId,
+        );
+    } catch ( err ) {
+        await updateBooking( booking.id, { status: 'review_failed' } );
+        
+        return { success: false, error: getProviderError( err.response?.data ?? err, 'Hotel review failed at provider' ) };
+    }
 
     if ( isProviderFailure( hotelReview ) ) {
         await updateBooking( booking.id, { status: 'review_failed' } );
@@ -314,13 +328,20 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
 
     const hotelAmount = Number( hotelReview.option?.pricing?.totalPrice ?? hotelOption.pricing?.totalPrice );
 
-    const flightSearch = await flightClient.searchFlights(
-        booking.origin_iata,
-        booking.destination_iata,
-        booking.departure_date,
-        booking.return_date,
-        { ADULT: booking.adults, CHILD: booking.children },
-    );
+    let flightSearch;
+    try {
+        flightSearch = await flightClient.searchFlights(
+            booking.origin_iata,
+            booking.destination_iata,
+            booking.departure_date,
+            booking.return_date,
+            { ADULT: booking.adults, CHILD: booking.children },
+        );
+    } catch ( err ) {
+        await updateBooking( booking.id, { status: 'review_failed' } );
+        
+        return { success: false, error: getProviderError( err.response?.data ?? err, 'Flight search failed at provider' ) };
+    }
 
     if ( isProviderFailure( flightSearch ) ) {
         await updateBooking( booking.id, { status: 'review_failed' } );
@@ -335,7 +356,14 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
         return { success: false, error: 'No flight option is available for this package' };
     }
 
-    const flightReview = await flightClient.reviewFlight( flightOption.priceId );
+    let flightReview;
+    try {
+        flightReview = await flightClient.reviewFlight( flightOption.priceId );
+    } catch ( err ) {
+        await updateBooking( booking.id, { status: 'review_failed' } );
+        
+        return { success: false, error: getProviderError( err.response?.data ?? err, 'Flight review failed at provider' ) };
+    }
 
     if ( isProviderFailure( flightReview ) ) {
         await updateBooking( booking.id, { status: 'review_failed' } );
