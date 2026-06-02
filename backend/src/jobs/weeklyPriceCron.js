@@ -234,5 +234,3 @@ export async function runWeeklyAggregation() {
         throw err;
     }
 }
-
-runWeeklyAggregation() 
