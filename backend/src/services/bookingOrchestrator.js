@@ -40,6 +40,13 @@ function toFlightTraveller( p ) {
     return traveller;
 }
 
+/**
+ * Constructs the delivery information object required for TripJack booking API calls.
+ * Extracts email and phone from the lead passenger to be used for tickets and vouchers.
+ * 
+ * @param {object[]} passengers - Array of booking_passengers rows
+ * @returns {object|null} The delivery info object, or null if lead email/phone is missing
+ */
 function buildDeliveryInfo( passengers ) {
     const leadPassenger = passengers.find( p => p.is_lead ) ?? passengers[ 0 ];
     const email = leadPassenger?.email;
@@ -103,14 +110,34 @@ function toHotelRoomTravellers( passengers, roomConfig ) {
     } );
 }
 
+/**
+ * Extracts a human-readable error message from a TripJack API response.
+ *
+ * @param {object} data - The error response data from TripJack
+ * @param {string} fallback - Fallback message if no specific error is found
+ * @returns {string} The extracted error message
+ */
 function getProviderError( data, fallback ) {
     return data?.errors?.[ 0 ]?.message ?? data?.status?.message ?? fallback;
 }
 
+/**
+ * Checks if a TripJack API response indicates a failure at the provider level.
+ *
+ * @param {object} data - The response data from TripJack
+ * @returns {boolean} True if the provider returned success: false
+ */
 function isProviderFailure( data ) {
     return data?.status && data.status.success === false;
 }
 
+/**
+ * Extracts the flight PNR (Passenger Name Record) from TripJack's booking details response.
+ * The PNR is deeply nested inside the travellerInfos map.
+ *
+ * @param {object} bookingDetails - The flight booking details response
+ * @returns {string|null} The extracted PNR string, or null if not found
+ */
 function extractFlightPnr( bookingDetails ) {
     const travellerInfos = bookingDetails?.itemInfos?.AIR?.travellerInfos ?? [];
 
@@ -127,10 +154,25 @@ function extractFlightPnr( bookingDetails ) {
     return null;
 }
 
+/**
+ * A simple utility to wait for a specified number of milliseconds (used for polling delays).
+ *
+ * @param {number} ms - Milliseconds to wait
+ * @returns {Promise<void>}
+ */
 function wait( ms ) {
     return new Promise( resolve => setTimeout( resolve, ms ) );
 }
 
+/**
+ * Selects the appropriate hotel room option from the TripJack pricing response.
+ * If a specific optionId is requested and available, it returns that.
+ * Otherwise, it defaults to the cheapest available option.
+ *
+ * @param {object[]} options - Array of available room options from TripJack
+ * @param {string} [hotelOptionId] - Optional requested option ID
+ * @returns {object|null} The selected option, or null if none are available
+ */
 function selectHotelOption( options, hotelOptionId ) {
     if ( !Array.isArray( options ) || options.length === 0 ) return null;
 
@@ -144,6 +186,14 @@ function selectHotelOption( options, hotelOptionId ) {
     )[ 0 ];
 }
 
+/**
+ * Calculates the total flight fare for the entire booking based on passenger counts.
+ * Multiplies the adult and child base fares by the respective number of passengers.
+ *
+ * @param {object} priceEntry - The flight price object from TripJack
+ * @param {object} booking - The bookings DB row containing adult and child counts
+ * @returns {number} The total flight fare
+ */
 function getFlightFareTotal( priceEntry, booking ) {
     const adultFare = Number( priceEntry?.fd?.ADULT?.fC?.TF ?? 0 );
     const childFare = Number( priceEntry?.fd?.CHILD?.fC?.TF ?? 0 );
@@ -151,6 +201,15 @@ function getFlightFareTotal( priceEntry, booking ) {
     return ( adultFare * booking.adults ) + ( childFare * booking.children );
 }
 
+/**
+ * Selects the appropriate flight option from the TripJack search response.
+ * Filters by preferred airline if specified, then selects the cheapest option.
+ *
+ * @param {object} searchData - The raw flight search response from TripJack
+ * @param {object} booking - The bookings DB row
+ * @param {string} [flightAirlineCode] - Optional preferred airline IATA code
+ * @returns {object|null} An object containing priceId, airline, and total fare, or null
+ */
 function selectFlightOption( searchData, booking, flightAirlineCode ) {
     const tripInfos = Object.values( searchData?.searchResult?.tripInfos ?? {} )
         .flatMap( value => Array.isArray( value ) ? value : [] );
@@ -204,6 +263,15 @@ async function updateBooking( bookingId, fields ) {
     }
 }
 
+/**
+ * Polls the TripJack API for the latest hotel booking details.
+ * Some hotel bookings are processed asynchronously, so we poll up to 3 times
+ * until the status is no longer transient (e.g., changes from BOOK_REQUESTED to CONFIRMED).
+ *
+ * @param {number} bookingId - Our DB booking ID (for logging)
+ * @param {string} tjHotelBookingId - The TripJack hotel booking ID
+ * @returns {Promise<object|null>} The latest booking details, or null if polling fails
+ */
 async function getHotelBookingDetailsSafely( bookingId, tjHotelBookingId ) {
     let latestDetails = null;
 
@@ -230,6 +298,15 @@ async function getHotelBookingDetailsSafely( bookingId, tjHotelBookingId ) {
     return latestDetails;
 }
 
+/**
+ * Fetches the latest flight booking details from the TripJack API.
+ * Swallows errors and returns null if the fetch fails, allowing the orchestrator
+ * to proceed without crashing (the flight is still considered booked).
+ *
+ * @param {number} bookingId - Our DB booking ID (for logging)
+ * @param {string} flightBookingId - The TripJack flight booking ID
+ * @returns {Promise<object|null>} The flight booking details, or null if fetch fails
+ */
 async function getFlightBookingDetailsSafely( bookingId, flightBookingId ) {
     try {
         return await flightClient.getFlightBookingDetails( flightBookingId );
