@@ -1,0 +1,46 @@
+name: Hotel Price Cron
+
+on:
+  schedule:
+    # Runs at 8:00 AM UTC daily — 6 hour after flight cron to avoid overlap
+    - cron: '0 8 * * *'
+  workflow_dispatch: # allows manual trigger from GitHub Actions UI
+
+concurrency:
+  group: hotel-cron-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-hotel-cron:
+    name: Refresh hotel_price_cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run hotel cron
+        working-directory: backend
+        run: npm run cron:hotels:now
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          TRIPJACK_API_KEY: ${{ secrets.TRIPJACK_API_KEY }}
+          TRIPJACK_BASE_URL: ${{ secrets.TRIPJACK_BASE_URL }}
+          TRIPJACK_HOTEL_BASE_URL: ${{ secrets.TRIPJACK_HOTEL_BASE_URL }}
+          MAX_CONCURRENT_HOTEL_WORKERS: ${{ vars.MAX_CONCURRENT_HOTEL_WORKERS || '1' }}
+          CACHE_DAYS_TIER1: ${{ vars.CACHE_DAYS_TIER1 || '30' }}
+          CACHE_DAYS_TIER2: ${{ vars.CACHE_DAYS_TIER2 || '90' }}
+          NODE_ENV: production
