@@ -1,0 +1,42 @@
+name: Weekly Price Aggregation Cron
+
+on:
+  schedule:
+    # Runs at 2:30 AM UTC daily — 30 min after flight cron (2:00 AM) to ensure fresh data
+    - cron: '30 2 * * *'
+  workflow_dispatch: # allows manual trigger from GitHub Actions UI
+
+concurrency:
+  group: weekly-agg-cron-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-weekly-agg-cron:
+    name: Refresh weekly_price_cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 30 # pure DB reads + one upsert — should complete in < 5 min
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run weekly aggregation
+        working-directory: backend
+        run: npm run cron:weekly-agg:now
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          CACHE_DAYS_TIER1: ${{ vars.CACHE_DAYS_TIER1 || '30' }}
+          CACHE_DAYS_TIER2: ${{ vars.CACHE_DAYS_TIER2 || '90' }}
+          NODE_ENV: production
