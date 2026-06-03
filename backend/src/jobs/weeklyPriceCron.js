@@ -1,43 +1,19 @@
 import 'dotenv/config';
 import supabase from '../config/supabaseClient.js';
-import { CACHE_DAYS_TIER2, DESTINATION_IATA_CODES, MILLISECONDS_PER_DAY, ORIGIN_IATA_CODES } from '../utils/constants.js';
+import {
+    CACHE_DAYS_TIER1,
+    CACHE_DAYS_TIER2,
+    DESTINATION_IATA_CODES,
+    ORIGIN_IATA_CODES,
+} from '../utils/constants.js';
+import { getCronDates, getWeekStart } from '../utils/dateHelpers.js';
 
 /** Returns current time as HH:MM:SS for log prefixes. */
 const ts = () => new Date().toISOString().slice( 11, 19 );
 
 /**
- * Generates an array of date strings (YYYY-MM-DD) for the next N days,
- * where N = tier2Days.
- */
-export function getCronDatesForWeeklyAggregator( tier2Days ) {
-    const dates = [];
-    const today = new Date();
-
-    for ( let i = 1; i <= tier2Days; i++ ) {
-        const d = new Date( today );
-        d.setUTCDate( d.getUTCDate() + i );
-        dates.push( d.toISOString().slice( 0, 10 ) );
-    }
-
-    return dates;
-}
-
-/**
- * Given a date string (YYYY-MM-DD), returns the Monday of that week as a 
- * string (YYYY-MM-DD).
- */
-function getWeekStartDate( dateStr ) {
-    const date        = new Date( dateStr );
-    const dayOfWeek   = date.getUTCDay();
-    const daysFromMonday = ( dayOfWeek + 6 ) % 7;
-    const monday      = new Date( date.getTime() - daysFromMonday * MILLISECONDS_PER_DAY );
-
-    return monday.toISOString().slice( 0, 10 );
-}
-
-/**
- * Fetches a map of destination IATA codes to their corresponding
- * destination IDs from the database,
+ * Fetches a map of destination IATA codes → destination IDs from the DB.
+ * @returns {Promise<Map<string, number>>}
  */
 async function fetchDestinationIdMap() {
     const { data, error } = await supabase
@@ -53,6 +29,11 @@ async function fetchDestinationIdMap() {
     return iataToDestinationId;
 }
 
+/**
+ * Fetches a map of destination ID → array of active hotel IDs for that destination.
+ * @param {number[]} destinationIds
+ * @returns {Promise<Map<number, number[]>>}
+ */
 async function fetchDestinationToHotelIdsMap( destinationIds ) {
     const { data, error } = await supabase
         .from( 'hotels' )
@@ -72,8 +53,10 @@ async function fetchDestinationToHotelIdsMap( destinationIds ) {
 }
 
 /**
- * Fetches flight price cache entries for the given dates for 
- * rank 1 (cheapest) flights
+ * Fetches rank-1 flight prices for the given dates.
+ * Returns a Map keyed by `"YYYY-MM-DD-ORIGIN-DEST"`.
+ * @param {string[]} dates  YYYY-MM-DD array
+ * @returns {Promise<Map<string, { price: number, airlineName: string, airlineCode: string }>>}
  */
 async function fetchFlightPriceMap( dates ) {
     const { data, error } = await supabase
@@ -98,8 +81,11 @@ async function fetchFlightPriceMap( dates ) {
 }
 
 /**
- * Fetches hotel price cache entries for the given hotel IDs 
- * for a given date 
+ * Fetches hotel prices for the given hotel IDs and dates.
+ * Returns a Map keyed by `"hotelId-YYYY-MM-DD"`.
+ * @param {number[]} allHotelIds
+ * @param {string[]} dates  YYYY-MM-DD array
+ * @returns {Promise<Map<string, number>>}
  */
 async function fetchHotelPriceMap( allHotelIds, dates ) {
     const { data, error } = await supabase
@@ -119,6 +105,17 @@ async function fetchHotelPriceMap( allHotelIds, dates ) {
     return hotelPriceMap;
 }
 
+/**
+ * Runs the weekly price aggregation job.
+ *
+ * Groups all (origin, destination, date) combinations into Monday-anchored weeks
+ * and finds the single day within each week where the combined flight + hotel price
+ * is cheapest. Both prices MUST come from the same departure date — never a global
+ * minimum from two different days.
+ *
+ * Uses the same date list as the flight/hotel crons (tier-1 daily + tier-2 every 3 days)
+ * so the aggregator only looks at dates that were actually cached.
+ */
 export async function runWeeklyAggregation() {
     const { data: cronRun, error: cronRunErr } = await supabase
         .from( 'cron_runs' )
@@ -129,9 +126,12 @@ export async function runWeeklyAggregation() {
     if ( cronRunErr ) throw new Error( `Failed to insert cron_run: ${cronRunErr.message}` );
 
     const cronRunId = cronRun.id;
+    console.log( `[weeklyAggregation][${ts()}] Started run #${cronRunId}` );
 
     try {
-        const dates = getCronDatesForWeeklyAggregator( CACHE_DAYS_TIER2 );
+        // Use the same tiered date list as the flight and hotel crons — this ensures
+        // we only aggregate dates that were actually fetched and cached.
+        const dates = getCronDates( CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 );
 
         const iataToDestinationId     = await fetchDestinationIdMap();
         const destinationIds          = [ ...iataToDestinationId.values() ];
@@ -150,27 +150,34 @@ export async function runWeeklyAggregation() {
             return;
         }
 
+        console.log( `[weeklyAggregation][${ts()}] ${dates.length} dates, ${allHotelIds.length} hotels, ${destinationIds.length} destinations` );
+
         const flightPriceMap = await fetchFlightPriceMap( dates );
         const hotelPriceMap  = await fetchHotelPriceMap( allHotelIds, dates );
 
+        // For each (origin, destination, week), find the single day with the cheapest
+        // combined flight + hotel price. Both prices must come from the same date.
         const weeklyBestMap = new Map();
 
         for ( const date of dates ) {
-            const weekStartDate = getWeekStartDate( date );
+            // getWeekStart returns the Monday of this date's week (YYYY-MM-DD)
+            const weekStartDate = getWeekStart( date );
 
             for ( const originIata of ORIGIN_IATA_CODES ) {
                 for ( const destinationIata of DESTINATION_IATA_CODES ) {
                     const flightKey    = `${date}-${originIata}-${destinationIata}`;
                     const flightRecord = flightPriceMap.get( flightKey );
+                    // Skip if no rank-1 flight cached for this route-date
                     if ( !flightRecord || flightRecord.price === null ) continue;
 
                     const destinationId = iataToDestinationId.get( destinationIata );
                     const hotelIds      = destinationIdToHotelIds.get( destinationId ) ?? [];
 
+                    // Find the cheapest hotel available on this exact date (INNER JOIN semantics)
                     let cheapestHotelPrice = null;
                     let cheapestHotelId   = null;
 
-                    hotelIds.forEach( hotelId => {
+                    for ( const hotelId of hotelIds ) {
                         const hotelPrice = hotelPriceMap.get( `${hotelId}-${date}` );
                         if (
                             hotelPrice !== undefined &&
@@ -180,14 +187,16 @@ export async function runWeeklyAggregation() {
                             cheapestHotelPrice = hotelPrice;
                             cheapestHotelId    = hotelId;
                         }
-                    } );
+                    }
 
+                    // No hotel data for this date = skip (equivalent to INNER JOIN in SQL version)
                     if ( cheapestHotelPrice === null ) continue;
 
                     const combinedPrice = flightRecord.price + cheapestHotelPrice;
                     const weekKey       = `${originIata}-${destinationIata}-${weekStartDate}`;
                     const existing      = weeklyBestMap.get( weekKey );
 
+                    // Keep only the cheapest combined day for this week
                     if ( !existing || combinedPrice < existing.combinedPrice ) {
                         weeklyBestMap.set( weekKey, {
                             originIata,
