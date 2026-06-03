@@ -308,6 +308,7 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
 
 export const reviewBooking = asyncHandler( async ( req, res ) => {
     const bookingId = parseInt( req.params.id, 10 );
+
     if ( isNaN( bookingId ) ) return response( res, false, 400, 'Invalid booking id' );
 
     const { hotelOptionId, flightAirlineCode } = req.body;
@@ -330,7 +331,6 @@ export const reviewBooking = asyncHandler( async ( req, res ) => {
     const result = await reviewPackageBooking( {
         booking,
         hotelOptionId,
-        // Body takes priority; fall back to what was saved at initiation.
         flightAirlineCode: flightAirlineCode ?? booking.preferred_airline_code ?? null,
     } );
 
@@ -351,6 +351,7 @@ export const reviewBooking = asyncHandler( async ( req, res ) => {
 
 export const confirmBooking = asyncHandler( async ( req, res ) => {
     const bookingId = parseInt( req.params.id, 10 );
+
     if ( isNaN( bookingId ) ) return response( res, false, 400, 'Invalid booking id' );
 
     // ── Load booking ──────────────────────────────────────────────────────────
