@@ -3,7 +3,7 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import response from '../utils/response.js';
 import { orchestrateBooking, reviewPackageBooking } from '../services/bookingOrchestrator.js';
 import { MAX_CHILD_AGE } from '../utils/constants.js';
-import { parseNonNegativeInt } from '../utils/helpers.js';
+import { parseNonNegativeInt, isValidDate, isValidPanNumber } from '../utils/helpers.js';
 
 // ─── Validation Constants ─────────────────────────────────────────────────────
 
@@ -105,13 +105,21 @@ function validatePassenger( p, idx ) {
     }
 
     if ( !p.date_of_birth ) return `${label}: date_of_birth is required (YYYY-MM-DD)`;
-
-    // Enforce strict YYYY-MM-DD; Date.parse catches invalid calendar dates like 1995-13-01.
-    if ( !/^\d{4}-\d{2}-\d{2}$/.test( p.date_of_birth ) || Number.isNaN( Date.parse( p.date_of_birth ) ) ) {
-        return `${label}: date_of_birth must be a valid date in YYYY-MM-DD format`;
+    if ( !isValidDate( p.date_of_birth ) ) {
+        return `${label}: date_of_birth must be a valid calendar date in YYYY-MM-DD format`;
     }
 
     if ( !p.nationality ) return `${label}: nationality is required (ISO 3166-1 alpha-2, e.g. IN)`;
+
+    // Validate passport_expiry format when provided (international bookings send this to TripJack)
+    if ( p.passport_expiry && !isValidDate( p.passport_expiry ) ) {
+        return `${label}: passport_expiry must be a valid calendar date in YYYY-MM-DD format`;
+    }
+
+    // Validate PAN format when provided (TripJack rejects malformed PANs at booking time)
+    if ( p.pan_number && !isValidPanNumber( p.pan_number.toUpperCase() ) ) {
+        return `${label}: pan_number must be a valid Indian PAN (e.g. BPHPY1955F)`;
+    }
 
     return null;
 }
@@ -211,6 +219,11 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
     if ( !destination_iata ) return response( res, false, 400, 'destination_iata is required' );
     if ( !departure_date   ) return response( res, false, 400, 'departure_date is required (YYYY-MM-DD)' );
     if ( !return_date      ) return response( res, false, 400, 'return_date is required (YYYY-MM-DD)' );
+
+    if ( !isValidDate( departure_date ) ) return response( res, false, 400, 'departure_date must be a valid calendar date in YYYY-MM-DD format' );
+    if ( !isValidDate( return_date ) )    return response( res, false, 400, 'return_date must be a valid calendar date in YYYY-MM-DD format' );
+    if ( return_date <= departure_date )  return response( res, false, 400, 'return_date must be after departure_date' );
+
     if ( !hotel_id         ) return response( res, false, 400, 'hotel_id is required' );
 
     // ── Room config ───────────────────────────────────────────────────────────
