@@ -94,16 +94,20 @@ function buildDeliveryInfo( passengers ) {
 function toHotelRoomTravellers( passengers, roomConfig ) {
     const byLeadFirst = ( a, b ) => ( b.is_lead ? 1 : 0 ) - ( a.is_lead ? 1 : 0 );
 
-    const adultQueue = passengers
-        .filter( p => p.pax_type === 'adult' )
-        .sort( byLeadFirst );
-    const childQueue = passengers.filter( p => p.pax_type === 'child' );
+    const adults   = passengers.filter( p => p.pax_type === 'adult' ).sort( byLeadFirst );
+    const children = passengers.filter( p => p.pax_type === 'child' );
+
+    let adultIdx = 0;
+    let childIdx = 0;
 
     return roomConfig.map( room => {
         const roomPassengers = [
-            ...adultQueue.splice( 0, room.adults ),
-            ...childQueue.splice( 0, room.children ?? 0 ),
+            ...adults.slice( adultIdx, adultIdx + room.adults ),
+            ...children.slice( childIdx, childIdx + ( room.children ?? 0 ) ),
         ];
+
+        adultIdx += room.adults;
+        childIdx += room.children ?? 0;
 
         return {
             travellerInfo: roomPassengers.map( p => {
