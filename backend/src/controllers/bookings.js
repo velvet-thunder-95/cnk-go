@@ -3,22 +3,29 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import response from '../utils/response.js';
 import { orchestrateBooking, reviewPackageBooking } from '../services/bookingOrchestrator.js';
 import { MAX_CHILD_AGE } from '../utils/constants.js';
+import { parseNonNegativeInt } from '../utils/helpers.js';
 
-// ─── Passenger Validation ─────────────────────────────────────────────────────
+// ─── Validation Constants ─────────────────────────────────────────────────────
 
-const VALID_TITLES    = [ 'Mr', 'Mrs', 'Ms', 'Miss', 'Master', 'Dr' ]
-
+const VALID_TITLES    = [ 'Mr', 'Mrs', 'Ms', 'Miss', 'Master', 'Dr' ];
 const VALID_PAX_TYPES = [ 'adult', 'child' ];
 
 // 'O' (Other) is accepted internally; TripJack has no gender field so no mapping needed.
 const VALID_GENDERS   = [ 'M', 'F', 'O' ];
 
-function parseNonNegativeInt( value ) {
-    const parsed = parseInt( value, 10 );
+// ─── Private Helpers ──────────────────────────────────────────────────────────
 
-    return Number.isNaN( parsed ) || parsed < 0 ? NaN : parsed;
-}
-
+/**
+ * Normalizes and validates the `rooms` array from the request body.
+ *
+ * Each room must have at least 1 adult. If a room has children, a matching
+ * `childAge` array with one age per child must also be provided, and each
+ * age must be between 0 and MAX_CHILD_AGE (inclusive).
+ *
+ * @param {Array<{ adults: number, children?: number, childAge?: number[] }>} rooms
+ *   Raw `rooms` array from the request body.
+ * @returns {{ rooms: object[], adultCount: number, childCount: number } | { error: string }}
+ */
 function normalizeRoomConfig( rooms ) {
     if ( !Array.isArray( rooms ) || rooms.length === 0 ) {
         return { error: 'rooms array is required and must not be empty' };
@@ -26,14 +33,13 @@ function normalizeRoomConfig( rooms ) {
 
     let adultCount = 0;
     let childCount = 0;
-
     const normalizedRooms = [];
 
     for ( let i = 0; i < rooms.length; i++ ) {
-        const room = rooms[ i ];
+        const room  = rooms[ i ];
         const label = `rooms[${i}]`;
-        
-        const roomAdults = parseNonNegativeInt( room.adults );
+
+        const roomAdults   = parseNonNegativeInt( room.adults );
         const roomChildren = parseNonNegativeInt( room.children ?? 0 );
 
         if ( Number.isNaN( roomAdults ) || roomAdults < 1 ) {
@@ -48,14 +54,14 @@ function normalizeRoomConfig( rooms ) {
             if ( !Array.isArray( rawChildAges ) || rawChildAges.length !== roomChildren ) {
                 return { error: `${label}: childAge must contain one age per child` };
             }
-
             const invalidAge = rawChildAges.some( age => {
                 const parsedAge = parseNonNegativeInt( age );
-
+                
                 return Number.isNaN( parsedAge ) || parsedAge > MAX_CHILD_AGE;
             } );
-
-            if ( invalidAge ) return { error: `${label}: childAge values must be between 0 and ${MAX_CHILD_AGE}` };
+            if ( invalidAge ) {
+                return { error: `${label}: childAge values must be between 0 and ${MAX_CHILD_AGE}` };
+            }
         }
 
         const childAge = roomChildren > 0
@@ -76,65 +82,111 @@ function normalizeRoomConfig( rooms ) {
 }
 
 /**
- * Validate a single passenger object from the request body.
- * @param {object} p    Passenger object
- * @param {number} idx  Array index (for error messages)
- * @returns {string|null}  Error message or null if valid
+ * Validates a single passenger object from the request body.
+ *
+ * @param {object} p   - Raw passenger object.
+ * @param {number} idx - Array index (for error messages).
+ * @returns {string | null} Error message, or `null` if valid.
  */
 function validatePassenger( p, idx ) {
     const label = `passengers[${idx}]`;
-    
+
     if ( !p.title || !VALID_TITLES.includes( p.title ) ) {
         return `${label}: title must be one of ${VALID_TITLES.join( ', ' )}`;
     }
-    
     if ( !p.first_name?.trim() ) return `${label}: first_name is required`;
     if ( !p.last_name?.trim()  ) return `${label}: last_name is required`;
-    
+
     if ( !p.pax_type || !VALID_PAX_TYPES.includes( p.pax_type ) ) {
         return `${label}: pax_type must be one of ${VALID_PAX_TYPES.join( ', ' )}`;
     }
     if ( !p.gender || !VALID_GENDERS.includes( p.gender ) ) {
         return `${label}: gender must be one of ${VALID_GENDERS.join( ', ' )}`;
     }
-    
+
     if ( !p.date_of_birth ) return `${label}: date_of_birth is required (YYYY-MM-DD)`;
-    
-    // Validate strict YYYY-MM-DD format
+
+    // Enforce strict YYYY-MM-DD; Date.parse catches invalid calendar dates like 1995-13-01.
     if ( !/^\d{4}-\d{2}-\d{2}$/.test( p.date_of_birth ) || Number.isNaN( Date.parse( p.date_of_birth ) ) ) {
         return `${label}: date_of_birth must be a valid date in YYYY-MM-DD format`;
     }
-    
+
     if ( !p.nationality ) return `${label}: nationality is required (ISO 3166-1 alpha-2, e.g. IN)`;
-    
+
     return null;
+}
+
+/**
+ * Validates and normalizes the optional `selected_flight` snapshot object.
+ *
+ * `selected_flight` captures the exact flight the user clicked on the package
+ * listing page. It is used at Review time to try to re-validate the same flight
+ * (matching on airline + departure time) before falling back to alternatives.
+ *
+ * @param {unknown} sf - Raw `selected_flight` value from the request body.
+ * @returns {{ value: object } | { error: string }}
+ */
+function normalizeSelectedFlight( sf ) {
+    if ( typeof sf !== 'object' || sf === null || Array.isArray( sf ) ) {
+        return { error: 'selected_flight must be an object' };
+    }
+    if ( !sf.airline_code || typeof sf.airline_code !== 'string' ) {
+        return { error: 'selected_flight.airline_code is required (IATA carrier code, e.g. "SG")' };
+    }
+    if ( !sf.departure_time || typeof sf.departure_time !== 'string' ) {
+        return { error: 'selected_flight.departure_time is required (HH:MM format, e.g. "14:00")' };
+    }
+    // Loose HH:MM format check
+    if ( !/^\d{1,2}:\d{2}$/.test( sf.departure_time ) ) {
+        return { error: 'selected_flight.departure_time must be in HH:MM format' };
+    }
+
+    return {
+        value: {
+            airline_code:   sf.airline_code.toUpperCase(),
+            departure_time: sf.departure_time,
+            price:          sf.price !== null ? Number( sf.price ) : null,
+        },
+    };
 }
 
 // ─── POST /api/bookings ───────────────────────────────────────────────────────
 //
 // Step 1 of 3: Create a booking record and save all passengers.
-// The frontend calls this after the user fills in the passenger form.
 // Returns booking_id for use in the /review step.
 //
 // Body:
 // {
-//   origin_iata, destination_iata, departure_date, return_date,
-//   nights, adults, children, child_ages (int[]),
+//   origin_iata, destination_iata, departure_date, return_date, nights,
+//   adults, children,
 //   rooms: [{ adults, children, childAge? }],
-//   hotel_id (our DB id for the selected hotel),
-//   preferred_airline_code? (IATA code the user selected on detail page, e.g. 'AI'),
-//   estimated_flight_cost, estimated_hotel_cost (optional — from cache display price),
-//   passengers: [
-//     {
-//       title, first_name, last_name, pax_type, gender (M/F/O), date_of_birth,
-//       nationality, is_lead (bool — exactly one must be true),
-//       email?, phone?, phone_country_code?,
-//       passport_number?, passport_expiry?,
-//       pan_number?, address_line_1?, city?, country_code?, country_name?
-//     }
-//   ]
+//   hotel_id,
+//   preferred_airline_code?,          IATA code (e.g. "SG") — fallback at review
+//   selected_flight?: {               Snapshot of what the user clicked
+//     airline_code,                   IATA carrier code
+//     departure_time,                 "HH:MM" outbound departure
+//     price?                          Display price (for audit)
+//   },
+//   estimated_flight_cost?,           Display price from cache (for audit)
+//   estimated_hotel_cost?,
+//   passengers: [ { ...passengerFields } ]
 // }
 
+/**
+ * **Step 1 of 3** — Create a booking record with passengers.
+ *
+ * No TripJack API calls. Validates all inputs, creates a `bookings` row
+ * (status = 'initiated'), and bulk-inserts `booking_passengers` rows.
+ *
+ * Key field — `selected_flight`:
+ *   A small snapshot `{ airline_code, departure_time, price? }` of the
+ *   exact flight the user selected on the package listing page. At Review
+ *   time, the orchestrator matches against this snapshot to guarantee the
+ *   user gets the same flight (or is transparently shown the best alternative).
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ */
 export const initiateBooking = asyncHandler( async ( req, res ) => {
     const {
         origin_iata,
@@ -148,6 +200,7 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
         rooms,
         hotel_id,
         preferred_airline_code,
+        selected_flight,
         estimated_flight_cost,
         estimated_hotel_cost,
         passengers,
@@ -160,11 +213,13 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
     if ( !return_date      ) return response( res, false, 400, 'return_date is required (YYYY-MM-DD)' );
     if ( !hotel_id         ) return response( res, false, 400, 'hotel_id is required' );
 
+    // ── Room config ───────────────────────────────────────────────────────────
     const roomConfig = normalizeRoomConfig( rooms );
     if ( roomConfig.error ) return response( res, false, 400, roomConfig.error );
 
-    const parsedNights = parseInt( nights, 10 );
-    const parsedAdults = adults === undefined || adults === null
+    // Derive pax counts — if caller omits adults/children, infer from rooms
+    const parsedNights   = parseInt( nights, 10 );
+    const parsedAdults   = adults === undefined || adults === null
         ? roomConfig.adultCount
         : parseInt( adults, 10 );
     const parsedChildren = children === undefined || children === null
@@ -176,66 +231,76 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
     if ( isNaN( parsedChildren ) || parsedChildren < 0 ) return response( res, false, 400, 'children must be 0 or more' );
 
     if ( parsedAdults !== roomConfig.adultCount ) {
-        return response( res, false, 400, `adults (${parsedAdults}) must match rooms adult total (${roomConfig.adultCount})` );
+        return response( res, false, 400,
+            `Total adults from rooms (${roomConfig.adultCount}) does not match top-level adults (${parsedAdults})` );
     }
     if ( parsedChildren !== roomConfig.childCount ) {
-        return response( res, false, 400, `children (${parsedChildren}) must match rooms child total (${roomConfig.childCount})` );
+        return response( res, false, 400,
+            `Total children from rooms (${roomConfig.childCount}) does not match top-level children (${parsedChildren})` );
     }
 
+    // ── selected_flight (optional) ────────────────────────────────────────────
+    let normalizedSelectedFlight = null;
+    if ( selected_flight !== undefined && selected_flight !== null ) {
+        const sfResult = normalizeSelectedFlight( selected_flight );
+        if ( sfResult.error ) return response( res, false, 400, sfResult.error );
+        normalizedSelectedFlight = sfResult.value;
+    }
+
+    // ── Passenger validation ──────────────────────────────────────────────────
     if ( !Array.isArray( passengers ) || passengers.length === 0 ) {
         return response( res, false, 400, 'passengers array is required and must not be empty' );
     }
 
-    // ── Validate each passenger ───────────────────────────────────────────────
     for ( let i = 0; i < passengers.length; i++ ) {
         const err = validatePassenger( passengers[ i ], i );
         if ( err ) return response( res, false, 400, err );
     }
 
-    // Passenger count must match adults + children
     const totalPax = parsedAdults + parsedChildren;
     if ( passengers.length !== totalPax ) {
-        return response(
-            res, false, 400,
-            `passengers length (${passengers.length}) must equal adults + children (${totalPax})`,
-        );
+        return response( res, false, 400,
+            `passengers length (${passengers.length}) must equal adults + children (${totalPax})` );
     }
 
     const passengerAdultCount = passengers.filter( p => p.pax_type === 'adult' ).length;
     const passengerChildCount = passengers.filter( p => p.pax_type === 'child' ).length;
 
     if ( passengerAdultCount !== parsedAdults ) {
-        return response( res, false, 400, `adult passengers (${passengerAdultCount}) must match adults (${parsedAdults})` );
+        return response( res, false, 400,
+            `adult passengers (${passengerAdultCount}) must match adults (${parsedAdults})` );
     }
     if ( passengerChildCount !== parsedChildren ) {
-        return response( res, false, 400, `child passengers (${passengerChildCount}) must match children (${parsedChildren})` );
+        return response( res, false, 400,
+            `child passengers (${passengerChildCount}) must match children (${parsedChildren})` );
     }
 
-    // Exactly one lead passenger required
     const leadCount = passengers.filter( p => p.is_lead === true ).length;
     if ( leadCount !== 1 ) {
         return response( res, false, 400, 'Exactly one passenger must have is_lead: true' );
     }
 
     const leadPassenger = passengers.find( p => p.is_lead === true );
-    if ( !leadPassenger.email || !leadPassenger.phone ) {
-        return response( res, false, 400, 'Lead passenger email and phone are required' );
+    if ( !leadPassenger.email ) {
+        return response( res, false, 400, 'Lead passenger must have an email' );
+    }
+    if ( !leadPassenger.phone ) {
+        return response( res, false, 400, 'Lead passenger must have a phone number' );
     }
 
     // ── Create booking record ─────────────────────────────────────────────────
     const hasFlightEstimate = estimated_flight_cost !== undefined && estimated_flight_cost !== null;
-    const hasHotelEstimate = estimated_hotel_cost !== undefined && estimated_hotel_cost !== null;
-    const estimated_total =
-        hasFlightEstimate && hasHotelEstimate
-            ? Number( estimated_flight_cost ) + Number( estimated_hotel_cost )
-            : null;
+    const hasHotelEstimate  = estimated_hotel_cost  !== undefined && estimated_hotel_cost  !== null;
+    const estimated_total   = hasFlightEstimate && hasHotelEstimate
+        ? Number( estimated_flight_cost ) + Number( estimated_hotel_cost )
+        : null;
 
     const computedChildAges = roomConfig.rooms.flatMap( room => room.childAge ?? [] );
 
     const { data: booking, error: bookingErr } = await supabase
         .from( 'bookings' )
         .insert( {
-            user_id: req.user?.id ?? null,   // null until auth is wired up
+            user_id:               req.user?.id ?? null,
             origin_iata:           origin_iata.toUpperCase(),
             destination_iata:      destination_iata.toUpperCase(),
             departure_date,
@@ -246,12 +311,15 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
             child_ages:            child_ages ?? ( computedChildAges.length ? computedChildAges : null ),
             rooms:                 roomConfig.rooms.length,
             room_config:           roomConfig.rooms,
-            hotel_id:                hotel_id              ?? null,
-            preferred_airline_code:  preferred_airline_code ? preferred_airline_code.toUpperCase() : null,
-            estimated_flight_cost:   estimated_flight_cost  ?? null,
+            hotel_id:              hotel_id              ?? null,
+            preferred_airline_code: preferred_airline_code
+                ? preferred_airline_code.toUpperCase()
+                : null,
+            selected_flight:       normalizedSelectedFlight,
+            estimated_flight_cost: estimated_flight_cost ?? null,
             estimated_hotel_cost:  estimated_hotel_cost  ?? null,
             estimated_total,
-            status:                'initiated',
+            status: 'initiated',
         } )
         .select( 'id' )
         .single();
@@ -268,17 +336,17 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
         gender:             p.gender,
         date_of_birth:      p.date_of_birth,
         is_lead:            p.is_lead ?? false,
-        email:              p.email             ?? null,
-        phone:              p.phone             ?? null,
+        email:              p.email              ?? null,
+        phone:              p.phone              ?? null,
         phone_country_code: p.phone_country_code ?? null,
-        passport_number:    p.passport_number   ?? null,
-        passport_expiry:    p.passport_expiry   ?? null,
-        nationality:        p.nationality       ?? 'IN',
-        pan_number:         p.pan_number        ?? null,
-        address_line_1:     p.address_line_1    ?? null,
-        city:               p.city              ?? null,
-        country_code:       p.country_code      ?? null,
-        country_name:       p.country_name      ?? null,
+        passport_number:    p.passport_number    ?? null,
+        passport_expiry:    p.passport_expiry    ?? null,
+        nationality:        p.nationality        ?? 'IN',
+        pan_number:         p.pan_number         ?? null,
+        address_line_1:     p.address_line_1     ?? null,
+        city:               p.city               ?? null,
+        country_code:       p.country_code       ?? null,
+        country_name:       p.country_name       ?? null,
     } ) );
 
     const { error: passengerErr } = await supabase
@@ -296,25 +364,31 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
 
 // ─── POST /api/bookings/:id/review ───────────────────────────────────────────
 //
-// Step 2 of 3: Create short-lived TripJack review tokens and final prices.
-// This should be called only after passenger details are saved and the user is
-// ready to see the final confirmation screen.
+// Step 2 of 3: Lock live prices and obtain short-lived TripJack session tokens.
 //
-// Body: (all fields optional)
+// Flight selection uses 3-level matching against booking.selected_flight:
+//   1. Same airline + same departure_time → "exact_match"
+//   2. Same airline, different time       → "flight_changed"
+//   3. Airline unavailable               → "sold_out"
+// The response always includes `availability` so the frontend can inform the user.
+//
+// Body (all optional):
 // {
-//   hotelOptionId?: string,       // if absent, cheapest hotel option from live pricing is used
-//   flightAirlineCode?: string    // overrides booking.preferred_airline_code for this review only
+//   hotelOptionId?: string,       cheapest hotel option is used if absent
+//   flightAirlineCode?: string    one-time override for preferred airline
 // }
 
+/**
+ * **Step 2 of 3** — Lock live prices and generate short-lived TripJack tokens.
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ */
 export const reviewBooking = asyncHandler( async ( req, res ) => {
     const bookingId = parseInt( req.params.id, 10 );
-
     if ( isNaN( bookingId ) ) return response( res, false, 400, 'Invalid booking id' );
 
     const { hotelOptionId, flightAirlineCode } = req.body;
-
-    // flightAirlineCode in the request body overrides the persisted preference.
-    // This lets the frontend allow the user to change airline at review time.
 
     const { data: booking, error: bookingErr } = await supabase
         .from( 'bookings' )
@@ -331,6 +405,7 @@ export const reviewBooking = asyncHandler( async ( req, res ) => {
     const result = await reviewPackageBooking( {
         booking,
         hotelOptionId,
+        // Body override takes priority; then fall back to persisted preferred_airline_code
         flightAirlineCode: flightAirlineCode ?? booking.preferred_airline_code ?? null,
     } );
 
@@ -343,18 +418,19 @@ export const reviewBooking = asyncHandler( async ( req, res ) => {
 
 // ─── POST /api/bookings/:id/confirm ──────────────────────────────────────────
 //
-// Step 3 of 3: Orchestrate hotel → flight booking using short-lived TripJack
-// tokens saved by POST /api/bookings/:id/review.
-//
-// The booking must be in 'reviewed' status. Calling this more than once on the
-// same booking returns 409.
+// Step 3 of 3: Execute hotel → flight booking using the tokens from /review.
+// Booking must be in 'reviewed' status. Calling this more than once returns 409.
 
+/**
+ * **Step 3 of 3** — Execute hotel → flight booking.
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ */
 export const confirmBooking = asyncHandler( async ( req, res ) => {
     const bookingId = parseInt( req.params.id, 10 );
-
     if ( isNaN( bookingId ) ) return response( res, false, 400, 'Invalid booking id' );
 
-    // ── Load booking ──────────────────────────────────────────────────────────
     const { data: booking, error: bookingErr } = await supabase
         .from( 'bookings' )
         .select( '*' )
@@ -364,10 +440,10 @@ export const confirmBooking = asyncHandler( async ( req, res ) => {
     if ( bookingErr || !booking ) return response( res, false, 404, 'Booking not found' );
 
     if ( booking.status !== 'reviewed' ) {
-        return response( res, false, 409, `Cannot confirm: booking is '${booking.status}'. Run /review first.` );
+        return response( res, false, 409,
+            `Booking not in REVIEWED state (current: '${booking.status}'). Run /review first.` );
     }
 
-    // ── Load passengers ───────────────────────────────────────────────────────
     const { data: passengers, error: passengerErr } = await supabase
         .from( 'booking_passengers' )
         .select( '*' )
@@ -379,11 +455,7 @@ export const confirmBooking = asyncHandler( async ( req, res ) => {
         return response( res, false, 400, 'No passengers found for this booking' );
     }
 
-    // ── Run orchestration ─────────────────────────────────────────────────────
-    const result = await orchestrateBooking( {
-        booking,
-        passengers,
-    } );
+    const result = await orchestrateBooking( { booking, passengers } );
 
     if ( !result.success ) {
         return response( res, false, 502, result.error );
@@ -399,9 +471,13 @@ export const confirmBooking = asyncHandler( async ( req, res ) => {
 } );
 
 // ─── GET /api/bookings/:id ────────────────────────────────────────────────────
-//
-// Returns the booking record along with all passengers.
 
+/**
+ * Fetch a single booking by ID, including all nested passengers.
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ */
 export const getBooking = asyncHandler( async ( req, res ) => {
     const bookingId = parseInt( req.params.id, 10 );
     if ( isNaN( bookingId ) ) return response( res, false, 400, 'Invalid booking id' );
@@ -418,11 +494,16 @@ export const getBooking = asyncHandler( async ( req, res ) => {
 } );
 
 // ─── GET /api/bookings ────────────────────────────────────────────────────────
-//
-// Returns a summary list of bookings (newest first).
-// Intentionally omits passenger details for list performance.
-// TODO: filter by req.user.id once auth is enabled.
 
+/**
+ * List bookings summary — newest first, max 50 rows.
+ * Passenger details omitted intentionally (use GET /api/bookings/:id for those).
+ *
+ * TODO: filter by req.user.id once auth is enabled.
+ *
+ * @param {import('express').Request}  _req
+ * @param {import('express').Response} res
+ */
 export const listBookings = asyncHandler( async ( _req, res ) => {
     const { data: bookings, error } = await supabase
         .from( 'bookings' )
