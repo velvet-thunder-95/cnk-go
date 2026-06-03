@@ -42,7 +42,7 @@ app.get( '/health', ( _req, res ) => {
 app.use( '/api/packages', packagesRouter );
 app.use( '/api/flights', flightsRouter );
 app.use( '/api/hotels', hotelsRouter );
-app.use('/api/bookings', bookingsRouter);
+app.use( '/api/bookings', bookingsRouter );
 // app.use('/api/admin',    adminRouter);
 
 // ─── auth ────────────────────────────────────────────────────────────────────
