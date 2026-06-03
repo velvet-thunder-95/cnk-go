@@ -6,8 +6,10 @@ import { MAX_CHILD_AGE } from '../utils/constants.js';
 
 // ─── Passenger Validation ─────────────────────────────────────────────────────
 
-const VALID_TITLES    = [ 'Mr', 'Mrs', 'Ms', 'Miss', 'Master', 'Dr' ];
+const VALID_TITLES    = [ 'Mr', 'Mrs', 'Ms', 'Miss', 'Master', 'Dr' ]
+
 const VALID_PAX_TYPES = [ 'adult', 'child' ];
+
 // 'O' (Other) is accepted internally; TripJack has no gender field so no mapping needed.
 const VALID_GENDERS   = [ 'M', 'F', 'O' ];
 
@@ -30,6 +32,7 @@ function normalizeRoomConfig( rooms ) {
     for ( let i = 0; i < rooms.length; i++ ) {
         const room = rooms[ i ];
         const label = `rooms[${i}]`;
+        
         const roomAdults = parseNonNegativeInt( room.adults );
         const roomChildren = parseNonNegativeInt( room.children ?? 0 );
 
@@ -80,23 +83,29 @@ function normalizeRoomConfig( rooms ) {
  */
 function validatePassenger( p, idx ) {
     const label = `passengers[${idx}]`;
+    
     if ( !p.title || !VALID_TITLES.includes( p.title ) ) {
         return `${label}: title must be one of ${VALID_TITLES.join( ', ' )}`;
     }
+    
     if ( !p.first_name?.trim() ) return `${label}: first_name is required`;
     if ( !p.last_name?.trim()  ) return `${label}: last_name is required`;
+    
     if ( !p.pax_type || !VALID_PAX_TYPES.includes( p.pax_type ) ) {
         return `${label}: pax_type must be one of ${VALID_PAX_TYPES.join( ', ' )}`;
     }
     if ( !p.gender || !VALID_GENDERS.includes( p.gender ) ) {
         return `${label}: gender must be one of ${VALID_GENDERS.join( ', ' )}`;
     }
+    
     if ( !p.date_of_birth ) return `${label}: date_of_birth is required (YYYY-MM-DD)`;
+    
     // Validate strict YYYY-MM-DD format
     if ( !/^\d{4}-\d{2}-\d{2}$/.test( p.date_of_birth ) || Number.isNaN( Date.parse( p.date_of_birth ) ) ) {
         return `${label}: date_of_birth must be a valid date in YYYY-MM-DD format`;
     }
-    if ( !p.nationality   ) return `${label}: nationality is required (ISO 3166-1 alpha-2, e.g. IN)`;
+    
+    if ( !p.nationality ) return `${label}: nationality is required (ISO 3166-1 alpha-2, e.g. IN)`;
     
     return null;
 }
