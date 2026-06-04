@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import supabase from './config/supabaseClient.js';
 import { globalErrorHandler } from './middleware/errorHandler.js';
 import response from './utils/response.js';
@@ -25,6 +26,7 @@ app.use( cors( {
 // ─── Request parsing & logging ────────────────────────────────────────────────
 app.use( express.json() );
 app.use( morgan( process.env.NODE_ENV === 'production' ? 'combined' : 'dev' ) );
+app.use(cookieParser());
 
 // ─── Health / root ────────────────────────────────────────────────────────────
 app.get( '/', ( _req, res ) => {
