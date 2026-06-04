@@ -1,10 +1,38 @@
 import { Router } from "express";
-import { login, logout, signUp } from "../controllers/auth.js";
+import { login, logout, signUp , forgotPassword } from "../controllers/auth.js";
+import { userAuthMiddleware } from "../middleware/userAuthMiddleware.js";
 
 const router = Router() ;
 
+/**
+ * User signup endpoint
+ * @route POST /signup
+ * @access Public
+ * @description Register a new user account
+ */
 router.post("/signup" , signUp) ;
+
+/**forgotPassword
+ * User login endpoint
+ * @route POST /login
+ * @access Public
+ * @description Authenticate user and return access token
+ */
 router.post("/login" , login) ;
-router.post("/logout" , logout) ;
+
+/**
+ * User logout endpoint
+ * @route POST /logout
+ * @access Private
+ * @description User logout from the profile
+ */
+router.post("/logout" , userAuthMiddleware , logout) ;
+
+/**
+ * @route POST /forgot-password
+ * @access Public
+ * @description Sends password reset email to the user
+ */
+router.post('/forgot-password', forgotPassword);
 
 export default router ;
