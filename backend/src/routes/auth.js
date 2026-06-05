@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login, logout, signUp , forgotPassword, changePassword } from "../controllers/auth.js";
+import { login, logout, signUp, changePassword } from "../controllers/auth.js";
 import { userAuthMiddleware } from "../middleware/userAuthMiddleware.js";
 
 const router = Router() ;
@@ -12,7 +12,7 @@ const router = Router() ;
  */
 router.post("/signup" , signUp) ;
 
-/**forgotPassword
+/**
  * User login endpoint
  * @route POST /login
  * @access Public
@@ -32,19 +32,6 @@ router.post("/logout" , userAuthMiddleware , logout) ;
  * @route POST /change-password
  * @access Private
  * @description Changes the password of the user after verifying the old password
- */
-
-/**
- * @route POST /forgot-password
- * @access Public
- * @description Initiates the password reset process by sending a reset email to the user
- */
-router.post('/forgot-password', forgotPassword);
-
-/**
- * @route POST /change-password
- * @access Private
- * @description Changes the user's password after verifying the old password
  */
 router.post('/change-password' , userAuthMiddleware , changePassword) ;
 
