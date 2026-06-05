@@ -3,12 +3,15 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import supabase from './config/supabaseClient.js';
 import { globalErrorHandler } from './middleware/errorHandler.js';
 import response from './utils/response.js';
 import packagesRouter from './routes/packages.js';
 import flightsRouter from './routes/flights.js';
 import hotelsRouter from './routes/hotels.js';
+import authRouter from './routes/auth.js';
+import userRouter from './routes/user.js';
 // import bookingsRouter from './routes/bookings.js';
 // import adminRouter    from './routes/admin.js';
 
@@ -24,6 +27,7 @@ app.use( cors( {
 // ─── Request parsing & logging ────────────────────────────────────────────────
 app.use( express.json() );
 app.use( morgan( process.env.NODE_ENV === 'production' ? 'combined' : 'dev' ) );
+app.use(cookieParser());
 
 // ─── Health / root ────────────────────────────────────────────────────────────
 app.get( '/', ( _req, res ) => {
@@ -40,6 +44,12 @@ app.use( '/api/flights', flightsRouter );
 app.use( '/api/hotels', hotelsRouter );
 // app.use('/api/bookings', bookingsRouter);
 // app.use('/api/admin',    adminRouter);
+
+// ─── auth ────────────────────────────────────────────────────────────────────
+app.use('/api/auth' , authRouter)
+
+// ─── user ────────────────────────────────────────────────────────────────────
+app.use('/api/user' , userRouter)
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use(( _req, res ) => {

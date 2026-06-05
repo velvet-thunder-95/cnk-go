@@ -16,6 +16,30 @@ export default [
             // Spaces inside object literals: { key: val } not {key: val}
             'object-curly-spacing': ['error', 'always'],
 
+            // Enforce spaces inside parentheses: if ( condition )
+            // 'space-in-parens': ['error', 'always'],
+
+            // Enforce spaces around keywords: if ( ... )
+            // 'keyword-spacing': ['error', { before: true, after: true }],
+
+            // Enforce spaces before blocks: ) {
+            // 'space-before-blocks': ['error', 'always'],
+
+            // 'comma-spacing': ['error', {
+            //     before: false,
+            //     after: true,
+            // }],
+
+            // 'semi-spacing': ['error', {
+            //     before: false,
+            //     after: true,
+            // }],
+
+            // 'key-spacing': ['error', {
+            //     beforeColon: false,
+            //     afterColon: true,
+            // }],
+
             // Max 1 consecutive blank line
             'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0, maxBOF: 0 }],
 
