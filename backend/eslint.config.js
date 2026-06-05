@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-    { ignores: [ 'node_modules/**' ] },
+    { ignores: ['node_modules/**'] },
     js.configs.recommended,
     {
         languageOptions: {
@@ -24,6 +24,21 @@ export default [
 
             // Enforce spaces before blocks: ) {
             // 'space-before-blocks': ['error', 'always'],
+
+            // 'comma-spacing': ['error', {
+            //     before: false,
+            //     after: true,
+            // }],
+
+            // 'semi-spacing': ['error', {
+            //     before: false,
+            //     after: true,
+            // }],
+
+            // 'key-spacing': ['error', {
+            //     beforeColon: false,
+            //     afterColon: true,
+            // }],
 
             // Max 1 consecutive blank line
             'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0, maxBOF: 0 }],
