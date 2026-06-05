@@ -11,6 +11,7 @@ import packagesRouter from './routes/packages.js';
 import flightsRouter from './routes/flights.js';
 import hotelsRouter from './routes/hotels.js';
 import authRouter from './routes/auth.js';
+import userRouter from './routes/user.js';
 // import bookingsRouter from './routes/bookings.js';
 // import adminRouter    from './routes/admin.js';
 
@@ -46,6 +47,9 @@ app.use( '/api/hotels', hotelsRouter );
 
 // ─── auth ────────────────────────────────────────────────────────────────────
 app.use('/api/auth' , authRouter)
+
+// ─── user ────────────────────────────────────────────────────────────────────
+app.use('/api/user' , userRouter)
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use(( _req, res ) => {
