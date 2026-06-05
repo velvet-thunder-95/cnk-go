@@ -229,10 +229,10 @@ export const initiateBooking = asyncHandler( async ( req, res ) => {
     const depDate  = new Date ( departure_date );
     const retDate  = new Date ( return_date );
     const diffTime = Math.abs ( retDate - depDate );
-    const diffDays = Math.ceil( diffTime / (1000 * 60 * 60 * 24) );
+    const diffDays = Math.ceil( diffTime / ( 1000 * 60 * 60 * 24 ) );
 
     if ( diffDays !== nights ) {
-        return response(res, false, 400, `nights (${nights}) does not match the date difference (${diffDays})`);
+        return response( res, false, 400, `nights (${nights}) does not match the date difference (${diffDays})` );
     }
 
     // ── Room config ───────────────────────────────────────────────────────────
