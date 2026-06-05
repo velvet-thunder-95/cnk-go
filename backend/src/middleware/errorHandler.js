@@ -6,8 +6,8 @@ import response from '../utils/response.js';
  * @param {Function} fn - async (req, res, next) handler
  * @returns {Function} Express middleware
  */
-export const asyncHandler = fn => (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
+export const asyncHandler = fn => ( req, res, next ) =>
+    Promise.resolve( fn( req, res, next ) ).catch( next );
 
 /**
  * Global Express error handler.
@@ -18,33 +18,33 @@ export const asyncHandler = fn => (req, res, next) =>
  * @param {import('express').Response} res
  * @param {Function} _next
  */
-export function globalErrorHandler(err, _req, res, _next) {
-    console.error('[error]', err);
+export function globalErrorHandler( err, _req, res, _next ) {
+    console.error( '[error]', err );
 
     // Supabase auth errors
-    if (err instanceof AuthError) {
-        return response(res, false, err.status || 401, err.message);
+    if ( err instanceof AuthError ) {
+        return response( res, false, err.status || 401, err.message );
     }
 
     // Axios / TripJack network errors
-    if (err.isAxiosError) {
+    if ( err.isAxiosError ) {
         const status = err.response?.status ?? 502;
         const tjErrors = err.response?.data?.errors;
         const message = tjErrors?.[0]?.message
             ?? err.response?.data?.message
             ?? 'External API request failed';
         
-        return response(res, false, status, message, tjErrors ? { errors: tjErrors } : undefined);
+        return response( res, false, status, message, tjErrors ? { errors: tjErrors } : undefined );
     }
 
     // Postgres unique-constraint violation
-    if (err.code === '23505') {
-        return response(res, false, 409, 'Duplicate entry — record already exists');
+    if ( err.code === '23505' ) {
+        return response( res, false, 409, 'Duplicate entry — record already exists' );
     }
 
     // Custom errors thrown with { statusCode, message, expose }
     const httpStatus = err.statusCode ?? err.status ?? 500;
     const message = err.expose ? err.message : 'Something went wrong!';
 
-    return response(res, false, httpStatus, message);
+    return response( res, false, httpStatus, message );
 }
