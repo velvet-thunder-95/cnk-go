@@ -52,7 +52,7 @@ export const updateProfile = asyncHandler (async(req , res) => {
     if (nationality) updateData.nationality = nationality.trim();
     if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
 
-    const { error } = await supabase.auth.updateUser({ data: updateData })
+    const { error } = await supabase.auth.admin.updateUserById(req.user.id, { user_metadata: updateData })
 
     if (error) {
         return response(res, false, 400, error.message);
