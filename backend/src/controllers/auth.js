@@ -120,39 +120,6 @@ export const logout = asyncHandler (async (_req,res) => {
 
     return response(res, true, 200, 'User logged out successfully');
 })
-
-/**
- * Forgot password controller
- * @route POST /api/auth/forgot-password
- * @access Public
- * @description Send password reset email to user
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object} JSON response with forgot password confirmation
- */
-export const forgotPassword = asyncHandler (async(req , res) =>{
-    const { email } = req.body ;
-
-    if (!email) {
-        return response(res, false, 400, 'Email is required');
-    }
-
-    // validate if the email is correct or not 
-    if(!validateEmail(email)){
-        return response(res, false, 400, 'Invalid email format');
-    }
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email , {
-        emailRedirectTo : `${process.env.FRONTEND_URL}/auth/reset-password`
-    })
-
-    if (error) {
-        return response(res, false, 400, error.message);
-    }
-
-    return response(res, true, 200, 'Password reset email sent successfully');
-})
-
 /**
  * Change password controller
  * @route POST /api/auth/change-password
@@ -184,7 +151,7 @@ export const changePassword = asyncHandler (async(req , res) =>{
         return response(res, false, 400, 'Old password is incorrect');
     }
 
-    const { error : updateError } = await supabase.auth.updateUser({
+    const { error : updateError } = await supabase.auth.admin.updateUserById(req.user.id, {
         password : newPassword
     })
 
