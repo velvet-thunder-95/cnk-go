@@ -1,4 +1,4 @@
-import { validateDateOfBirth, validateEmail } from "../../services/validate.js";
+import { validateDateOfBirth, validateEmail } from "../utils/validate.js";
 import { asyncHandler } from '../middleware/errorHandler.js';
 import supabase from "../config/supabaseClient.js";
 import response from "../utils/response.js";
