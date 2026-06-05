@@ -13,32 +13,26 @@ export function validateEmail(email){
 }
 
 /**
- * Checks if a password meets strength requirements
- * @param {string} password - The password to validate
- * @returns {boolean} True if password is strong, false otherwise
- * @description Password must contain at least:
- * - One lowercase letter (a-z)
- * - One uppercase letter (A-Z)
- * - One number (0-9)
- * - One special character (@$!%*?#&)
+ * Validates date of birth — must be a valid date and not in the future
+ * @param {string} dob - Date of birth in YYYY-MM-DD format
+ * @returns {boolean} True if valid, false otherwise
  * @example
- * isStrongPassword('Secure@123') // true
- * isStrongPassword('weakpass')   // false
+ * validateDateOfBirth('1990-05-15') // true
+ * validateDateOfBirth('2099-01-01') // false
  */
-export function isStrongPassword(password) {
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?#&])/;
+export function validateDateOfBirth(dob) {
+    if (!dob) return false;
 
-    return passwordRegex.test(password);
-}
+    const date = new Date(dob);
+    const now = new Date();
 
-/**
- * Validates that a password meets the minimum length requirement
- * @param {string} password - The password to validate
- * @returns {boolean} True if password is at least 8 characters, false otherwise
- * @example
- * validatePasswordLength('short')        // false
- * validatePasswordLength('longenough')   // true
- */
-export function validatePasswordLength(password){
-    return password.length >= 8;
+    if (isNaN(date.getTime())) {
+        return false;
+    }
+
+    if (date.getTime() > now.getTime()) {
+        return false ;
+    }
+
+    return true;
 }

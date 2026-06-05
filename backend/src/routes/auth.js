@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login, logout, signUp , forgotPassword } from "../controllers/auth.js";
+import { login, logout, signUp , forgotPassword, changePassword, updateProfile, getProfile, deleteUser } from "../controllers/auth.js";
 import { userAuthMiddleware } from "../middleware/userAuthMiddleware.js";
 
 const router = Router() ;
@@ -29,10 +29,44 @@ router.post("/login" , login) ;
 router.post("/logout" , userAuthMiddleware , logout) ;
 
 /**
+ * @route POST /change-password
+ * @access Private
+ * @description Changes the password of the user after verifying the old password
+ */
+
+/**
  * @route POST /forgot-password
  * @access Public
- * @description Sends password reset email to the user
+ * @description Initiates the password reset process by sending a reset email to the user
  */
 router.post('/forgot-password', forgotPassword);
+
+/**
+ * @route POST /change-password
+ * @access Private
+ * @description Changes the user's password after verifying the old password
+ */
+router.post('/change-password' , userAuthMiddleware , changePassword) ;
+
+/**
+ * @route POST /update-profile
+ * @access Private
+ * @description Updates the user's profile information such as first name, last name etc.
+ */
+router.post('/update-profile' , userAuthMiddleware , updateProfile) ;
+
+/**
+ * @route GET /get-profile
+ * @access Private
+ * @description Retrieves the authenticated user's profile information
+ */
+router.get('/get-profile', userAuthMiddleware, getProfile ) ;
+
+/**
+ * @route POST /delete-account
+ * @access Private
+ * @description Deletes the authenticated user's account permanently
+ */
+router.post('/delete-account' , userAuthMiddleware ,deleteUser ) ;
 
 export default router ;
