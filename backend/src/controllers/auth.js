@@ -12,36 +12,36 @@ import response from "../utils/response.js";
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with signup confirmation
  */
-export const signUp = asyncHandler( async (req , res) => {
-    const { email , password, firstName, lastName, nationality, dateOfBirth } = req.body ;
+export const signUp = asyncHandler( async ( req, res ) => {
+    const { email, password, firstName, lastName, nationality, dateOfBirth } = req.body;
 
     // now validate the email and password 
-    if(!email || !password){
-        return response(res, false, 400, 'Email and password are required');
+    if ( !email || !password ) {
+        return response( res, false, 400, 'Email and password are required' );
     }
 
     // validate if the email is correct or not 
-    if(!validateEmail(email)){
-        return response(res, false, 400, 'Invalid email format');
+    if ( !validateEmail( email ) ) {
+        return response( res, false, 400, 'Invalid email format' );
     }
 
-    if(dateOfBirth && !validateDateOfBirth(dateOfBirth)){
-        return response(res, false, 400, 'Invalid date of birth. Please provide a valid date.');
+    if ( dateOfBirth && !validateDateOfBirth( dateOfBirth ) ) {
+        return response( res, false, 400, 'Invalid date of birth. Please provide a valid date.' );
     }
 
-    const { error } = await supabase.auth.signUp({
-        email , password , options : {
+    const { error } = await supabase.auth.signUp( {
+        email, password, options : {
             data : {
-                first_name : firstName ,
-                last_name : lastName ,
-                nationality : nationality ,
-                date_of_birth : dateOfBirth ,
+                first_name : firstName,
+                last_name : lastName,
+                nationality : nationality,
+                date_of_birth : dateOfBirth,
             }
         }
-    })
+    } )
 
-    if (error) {
-        return response(res , false , 400 , error.message) ;
+    if ( error ) {
+        return response( res, false, 400, error.message );
     }
 
     return response(
@@ -50,7 +50,7 @@ export const signUp = asyncHandler( async (req , res) => {
         201,
         'A verification email has been sent to your email address. Please verify your email before logging in.',
     );
-})
+} )
 
 /**
  * User login controller
@@ -61,23 +61,23 @@ export const signUp = asyncHandler( async (req , res) => {
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with login confirmation and user data
  */
-export const login = asyncHandler(async (req,res) => {
-    const { email , password } = req.body ;
+export const login = asyncHandler( async ( req, res ) => {
+    const { email, password } = req.body;
 
-    if (!email || !password) {
-        return response(res, false, 400, 'Email and password are required');
+    if ( !email || !password ) {
+        return response( res, false, 400, 'Email and password are required' );
     }
 
     // validate if the email is correct or not 
-    if(!validateEmail(email)){
-        return response(res, false, 400, 'Invalid email format');
+    if ( !validateEmail( email ) ) {
+        return response( res, false, 400, 'Invalid email format' );
     }
 
-    const { data , error } = await supabase.auth.signInWithPassword({
-        email , password
-    })
-    if(error){
-        return response(res , false , 400 , error.message) ;
+    const { data, error } = await supabase.auth.signInWithPassword( {
+        email, password
+    } )
+    if ( error ) {
+        return response( res, false, 400, error.message );
     }
 
     const userId = data.user.id;
@@ -90,13 +90,13 @@ export const login = asyncHandler(async (req,res) => {
         path: '/',
     };
 
-    res.cookie('access_token' , data.session.access_token , cookieOptions)
+    res.cookie( 'access_token', data.session.access_token, cookieOptions )
     
-    return response(res, true, 200, 'User logged in successfully', {
+    return response( res, true, 200, 'User logged in successfully', {
         user_id: userId,
         user: data.user.user_metadata
-    });
-})
+    } );
+} )
 
 /**
  * User logout controller
@@ -107,19 +107,19 @@ export const login = asyncHandler(async (req,res) => {
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with logout confirmation
  */
-export const logout = asyncHandler (async (_req,res) => {
+export const logout = asyncHandler ( async ( _req, res ) => {
 
     await supabase.auth.signOut();
     
-    res.clearCookie('access_token', {
+    res.clearCookie( 'access_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         path: '/',
-    });
+    } );
 
-    return response(res, true, 200, 'User logged out successfully');
-})
+    return response( res, true, 200, 'User logged out successfully' );
+} )
 /**
  * Change password controller
  * @route POST /api/auth/change-password
@@ -131,33 +131,33 @@ export const logout = asyncHandler (async (_req,res) => {
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with password change confirmation
  */
-export const changePassword = asyncHandler (async(req , res) =>{
-    const { oldPassword , newPassword } = req.body ;
-    const email = req.user.email ;
+export const changePassword = asyncHandler ( async( req, res ) =>{
+    const { oldPassword, newPassword } = req.body;
+    const email = req.user.email;
 
-    if(!email){
-        return response(res, false, 400, 'login first to change your password');
+    if ( !email ) {
+        return response( res, false, 400, 'login first to change your password' );
     }
-    if (!oldPassword || !newPassword) {
-        return response(res, false, 400, 'Old password and new password are required');
+    if ( !oldPassword || !newPassword ) {
+        return response( res, false, 400, 'Old password and new password are required' );
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-        email ,
+    const { error } = await supabase.auth.signInWithPassword( {
+        email,
         password : oldPassword
-    })
+    } )
 
-    if(error){
-        return response(res, false, 400, 'Old password is incorrect');
+    if ( error ) {
+        return response( res, false, 400, 'Old password is incorrect' );
     }
 
-    const { error : updateError } = await supabase.auth.admin.updateUserById(req.user.id, {
+    const { error : updateError } = await supabase.auth.admin.updateUserById( req.user.id, {
         password : newPassword
-    })
+    } )
 
-    if (updateError) {
-        return response(res, false, 400, updateError.message);
+    if ( updateError ) {
+        return response( res, false, 400, updateError.message );
     }
 
-    return response(res, true, 200, 'Password reset successfully');
-})
+    return response( res, true, 200, 'Password reset successfully' );
+} )

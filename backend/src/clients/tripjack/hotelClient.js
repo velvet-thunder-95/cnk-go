@@ -164,7 +164,7 @@ export async function cancelHotel( bookingId ) {
  * @param {string|null} next  Pagination cursor from previous response (null for first page)
  * @returns {Promise<{ data: object[], nextToken: string|null }>}
  */
-export async function fetchHotels(next) {
+export async function fetchHotels( next ) {
     const res = await omsClient.post(
         `/hms/v3/fetch-static-hotels`,
         next ? { next } : {},

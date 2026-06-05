@@ -27,7 +27,7 @@ app.use( cors( {
 // ─── Request parsing & logging ────────────────────────────────────────────────
 app.use( express.json() );
 app.use( morgan( process.env.NODE_ENV === 'production' ? 'combined' : 'dev' ) );
-app.use(cookieParser());
+app.use( cookieParser() );
 
 // ─── Health / root ────────────────────────────────────────────────────────────
 app.get( '/', ( _req, res ) => {
@@ -46,15 +46,15 @@ app.use( '/api/hotels', hotelsRouter );
 // app.use('/api/admin',    adminRouter);
 
 // ─── auth ────────────────────────────────────────────────────────────────────
-app.use('/api/auth' , authRouter)
+app.use( '/api/auth', authRouter )
 
 // ─── user ────────────────────────────────────────────────────────────────────
-app.use('/api/user' , userRouter)
+app.use( '/api/user', userRouter )
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
-app.use(( _req, res ) => {
+app.use( ( _req, res ) => {
     response( res, false, 404, 'Route not found' );
-});
+} );
 
 // ─── Global error handler (must be 4-arg) ────────────────────────────────────
 app.use( globalErrorHandler );

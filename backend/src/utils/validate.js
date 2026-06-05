@@ -6,10 +6,10 @@
  * validateEmail('user@example.com') // true
  * validateEmail('invalid-email')    // false
  */
-export function validateEmail(email){
+export function validateEmail( email ) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    return emailRegex.test(email);
+    return emailRegex.test( email );
 }
 
 /**
@@ -20,18 +20,18 @@ export function validateEmail(email){
  * validateDateOfBirth('1990-05-15') // true
  * validateDateOfBirth('2099-01-01') // false
  */
-export function validateDateOfBirth(dob) {
-    if (!dob) return false;
+export function validateDateOfBirth( dob ) {
+    if ( !dob ) return false;
 
-    const date = new Date(dob);
+    const date = new Date( dob );
     const now = new Date();
 
-    if (isNaN(date.getTime())) {
+    if ( isNaN( date.getTime() ) ) {
         return false;
     }
 
-    if (date.getTime() > now.getTime()) {
-        return false ;
+    if ( date.getTime() > now.getTime() ) {
+        return false;
     }
 
     return true;
