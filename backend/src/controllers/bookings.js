@@ -480,7 +480,10 @@ export const confirmBooking = asyncHandler( async ( req, res ) => {
     const result = await orchestrateBooking( { booking, passengers } );
 
     if ( !result.success ) {
-        return response( res, false, 502, result.error );
+        return response( res, false, 502, result.error, {
+            status: result.status,
+            ...result.data
+        } );
     }
 
     return response( res, true, 200, 'Booking confirmed successfully', {
@@ -489,6 +492,8 @@ export const confirmBooking = asyncHandler( async ( req, res ) => {
         tj_hotel_booking_id: result.booking?.tj_hotel_booking_id,
         flight_booking_id:   result.booking?.flight_booking_id,
         total_amount:        result.booking?.total_amount,
+        hotel_details:       result.hotel_details,
+        flight_details:      result.flight_details
     } );
 } );
 

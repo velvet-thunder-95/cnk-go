@@ -708,14 +708,24 @@ export async function orchestrateBooking( { booking, passengers } ) {
         console.error( `[orchestrator] Hotel booking threw for #${bookingId}:`, msg );
         await updateBooking( bookingId, { status: 'hotel_failed', hotel_status: 'FAILED' } );
         
-        return { success: false, error: `Hotel booking failed: ${msg}` };
+        return { 
+            success: false, 
+            status: 'HOTEL_FAILED + FLIGHT_SKIPPED',
+            error: `Hotel booking failed: ${msg}`,
+            data: { hotel_error: msg, flight_status: 'SKIPPED' }
+        };
     }
 
     if ( hotelResult?.status && !hotelResult.status.success ) {
         const msg = hotelResult.errors?.[ 0 ]?.message ?? 'Hotel booking rejected by provider';
         await updateBooking( bookingId, { status: 'hotel_failed', hotel_status: 'FAILED' } );
         
-        return { success: false, error: `Hotel booking failed: ${msg}` };
+        return { 
+            success: false, 
+            status: 'HOTEL_FAILED + FLIGHT_SKIPPED',
+            error: `Hotel booking failed: ${msg}`,
+            data: { hotel_error: msg, flight_status: 'SKIPPED' }
+        };
     }
 
     tjHotelBookingId = hotelResult.bookingId ?? hotelResult.order?.bookingId ?? hotelBookingId;
@@ -748,17 +758,35 @@ export async function orchestrateBooking( { booking, passengers } ) {
     } catch ( err ) {
         const msg = err.response?.data?.errors?.[ 0 ]?.message ?? err.message ?? 'Flight booking failed';
         console.error( `[orchestrator] Flight booking threw for #${bookingId}:`, msg );
-        await _cancelHotelSafely( bookingId, tjHotelBookingId );
+        const cancelResult = await _cancelHotelSafely( bookingId, tjHotelBookingId );
         
-        return { success: false, error: `Flight booking failed: ${msg}` };
+        return { 
+            success: false, 
+            status: cancelResult.success ? 'HOTEL_SUCCESS + FLIGHT_FAILED + HOTEL_CANCELLED' : 'HOTEL_SUCCESS + FLIGHT_FAILED + HOTEL_CANCEL_FAILED',
+            error: `Flight booking failed: ${msg}. Hotel was ${cancelResult.success ? 'cancelled successfully' : 'NOT cancelled'}`,
+            data: {
+                flight_error: msg,
+                hotel_cancel_status: cancelResult.success ? 'SUCCESS' : 'FAILED',
+                hotel_cancel_error: cancelResult.success ? null : cancelResult.error
+            }
+        };
     }
 
     if ( flightResult?.status && !flightResult.status.success ) {
         const msg = flightResult.errors?.[ 0 ]?.message ?? 'Flight booking rejected by provider';
         console.error( `[orchestrator] Flight rejected for #${bookingId}:`, msg );
-        await _cancelHotelSafely( bookingId, tjHotelBookingId );
+        const cancelResult = await _cancelHotelSafely( bookingId, tjHotelBookingId );
         
-        return { success: false, error: `Flight booking failed: ${msg}` };
+        return { 
+            success: false, 
+            status: cancelResult.success ? 'HOTEL_SUCCESS + FLIGHT_FAILED + HOTEL_CANCELLED' : 'HOTEL_SUCCESS + FLIGHT_FAILED + HOTEL_CANCEL_FAILED',
+            error: `Flight booking failed: ${msg}. Hotel was ${cancelResult.success ? 'cancelled successfully' : 'NOT cancelled'}`,
+            data: {
+                flight_error: msg,
+                hotel_cancel_status: cancelResult.success ? 'SUCCESS' : 'FAILED',
+                hotel_cancel_error: cancelResult.success ? null : cancelResult.error
+            }
+        };
     }
 
     // ── Step 3: Mark Confirmed ────────────────────────────────────────────────
@@ -785,7 +813,12 @@ export async function orchestrateBooking( { booking, passengers } ) {
         .eq( 'id', bookingId )
         .single();
 
-    return { success: true, booking: finalBooking };
+    return { 
+        success: true, 
+        booking: finalBooking,
+        hotel_details: hotelDetails,
+        flight_details: flightDetails
+    };
 }
 
 // ─── Internal Helpers ─────────────────────────────────────────────────────────
@@ -810,6 +843,8 @@ async function _cancelHotelSafely( bookingId, tjHotelBookingId ) {
             flight_status:           'FAILED',
         } );
         console.log( `[orchestrator] Hotel ${tjHotelBookingId} cancelled after flight failure` );
+        
+        return { success: true };
     } catch ( cancelErr ) {
         await updateBooking( bookingId, {
             status:                  'flight_failed',
@@ -820,5 +855,7 @@ async function _cancelHotelSafely( bookingId, tjHotelBookingId ) {
             `[orchestrator] Hotel cancel FAILED for TJ ID ${tjHotelBookingId} (booking #${bookingId}):`,
             cancelErr.message,
         );
+        
+        return { success: false, error: cancelErr.message };
     }
 }
