@@ -12,10 +12,10 @@ const TITLE_TO_TJ_TITLE = {
 };
 
 /** Maximum poll attempts when waiting for a hotel booking to leave a transient state. */
-const HOTEL_DETAILS_POLL_ATTEMPTS = 3;
+const HOTEL_DETAILS_POLL_ATTEMPTS = 36;
 
 /** Milliseconds between hotel-details polling attempts. */
-const HOTEL_DETAILS_POLL_DELAY_MS = 2000;
+const HOTEL_DETAILS_POLL_DELAY_MS = 5000;
 
 /**
  * TripJack hotel statuses that are transient (still in-progress).
