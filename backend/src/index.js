@@ -12,7 +12,7 @@ import flightsRouter from './routes/flights.js';
 import hotelsRouter from './routes/hotels.js';
 import authRouter from './routes/auth.js';
 import userRouter from './routes/user.js';
-// import bookingsRouter from './routes/bookings.js';
+import bookingsRouter from './routes/bookings.js';
 // import adminRouter    from './routes/admin.js';
 
 const app = express();
@@ -42,7 +42,7 @@ app.get( '/health', ( _req, res ) => {
 app.use( '/api/packages', packagesRouter );
 app.use( '/api/flights', flightsRouter );
 app.use( '/api/hotels', hotelsRouter );
-// app.use('/api/bookings', bookingsRouter);
+app.use( '/api/bookings', bookingsRouter );
 // app.use('/api/admin',    adminRouter);
 
 // ─── auth ────────────────────────────────────────────────────────────────────

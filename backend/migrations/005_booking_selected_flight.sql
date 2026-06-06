@@ -1,0 +1,23 @@
+-- 005_booking_selected_flight.sql
+--
+-- Adds selected_flight (JSONB) to bookings.
+--
+-- Stores a snapshot of the exact flight the user clicked on the package
+-- listing page, sent by the frontend at initiate time:
+--
+--   {
+--     "airline_code":    "SG",      -- IATA carrier code
+--     "departure_time":  "14:00",   -- HH:MM (outbound leg departure)
+--     "price":           15459      -- display price the user saw (optional, for audit)
+--   }
+--
+-- At Review time, the orchestrator runs a fresh TripJack search and applies
+-- 3-level matching against this snapshot:
+--   1. Same airline + same departure_time → exact_match  (ideal)
+--   2. Same airline, different time      → flight_changed (tell user, still proceed)
+--   3. Airline unavailable              → sold_out       (use next cheapest)
+--
+-- If this column is NULL the orchestrator falls back to
+-- preferred_airline_code (airline filter, any time).
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_flight JSONB;

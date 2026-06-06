@@ -15,6 +15,9 @@ export const TOP_N_FLIGHTS = Number( process.env.TOP_N_FLIGHTS ) || 3;
 /** Maximum guests per room (2 adults + 1 child) */
 export const MAX_OCCUPANCY_PER_ROOM = Number( process.env.MAX_OCCUPANCY_PER_ROOM ) || 3;
 
+/** Maximum age (inclusive) that TripJack treats as a child passenger */
+export const MAX_CHILD_AGE = 17;
+
 /** Refresh all dates in this window daily (tier 1) */
 export const CACHE_DAYS_TIER1 = Number( process.env.CACHE_DAYS_TIER1 ) || 30;
 

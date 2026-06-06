@@ -7,10 +7,16 @@ const client = axios.create( {
         apikey: process.env.TRIPJACK_API_KEY,
         'Content-Type': 'application/json',
     },
-    timeout: 15000,
+    timeout: 30000,
 } );
 
-axiosRetry( client, { retries: 3, retryDelay: axiosRetry.exponentialDelay } );
+axiosRetry( client, {
+    retries: 2,
+    retryDelay: axiosRetry.exponentialDelay,
+    // Do NOT retry on timeout — retrying a slow search just wastes 30+ extra seconds.
+    // Only retry on network errors (ECONNRESET, ENOTFOUND) and 5xx responses.
+    retryCondition: err => !err.code?.includes( 'TIMEOUT' ) && axiosRetry.isNetworkOrIdempotentRequestError( err ),
+} );
 
 // ─── Flight Search ────────────────────────────────────────────────────────────
 

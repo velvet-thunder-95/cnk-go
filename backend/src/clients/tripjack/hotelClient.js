@@ -8,7 +8,7 @@ const hmsClient = axios.create( {
         apikey: process.env.TRIPJACK_API_KEY,
         'Content-Type': 'application/json',
     },
-    timeout: 15000,
+    timeout: 30000,
 } );
 
 // OMS client — hotel book, booking-details, cancel (OMS domain, not HMS!)
@@ -18,11 +18,14 @@ const omsClient = axios.create( {
         apikey: process.env.TRIPJACK_API_KEY,
         'Content-Type': 'application/json',
     },
-    timeout: 15000,
+    timeout: 30000,
 } );
 
-axiosRetry( hmsClient, { retries: 3, retryDelay: axiosRetry.exponentialDelay } );
-axiosRetry( omsClient, { retries: 3, retryDelay: axiosRetry.exponentialDelay } );
+const noRetryOnTimeout = { retries: 2, retryDelay: axiosRetry.exponentialDelay,
+    retryCondition: err => !err.code?.includes( 'TIMEOUT' ) && axiosRetry.isNetworkOrIdempotentRequestError( err ) };
+
+axiosRetry( hmsClient, noRetryOnTimeout );
+axiosRetry( omsClient, noRetryOnTimeout );
 
 // ─── H1: Hotel Listing ────────────────────────────────────────────────────────
 
