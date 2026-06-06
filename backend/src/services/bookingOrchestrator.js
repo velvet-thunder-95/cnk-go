@@ -603,6 +603,10 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
         total_amount:              hotelAmount + flightAmount,
     } );
 
+    const flightTtl = flightReview.conditions?.st ? Number( flightReview.conditions.st ) : null;
+    const packageTtl = flightTtl ? Math.min( flightTtl, 900 ) : 900; // Hotel valid for ~15 mins (900s)
+    const hotelPricingBreakdown = hotelReview.option?.pricing ?? hotelOption.pricing ?? {};
+
     return {
         success: true,
         review: {
@@ -613,6 +617,7 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
             // "flight_changed" / "sold_out" → surface flightChangedReason to the user.
             availability,
             ...( flightChangedReason ? { flight_changed_reason: flightChangedReason } : {} ),
+            package_ttl_seconds: packageTtl,
             hotel: {
                 name:           hotel.name,
                 booking_id:     hotelReview.bookingId,
@@ -622,6 +627,18 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
                 deadline:       hotelReview.option?.deadlineDateTime ?? null,
                 option_id:      hotelReview.option?.optionId ?? hotelOption.optionId,
                 cancellation:   hotelReview.option?.cancellation ?? hotelOption.cancellation ?? null,
+                room_info:      hotelReview.option?.roomInfo ?? hotelOption.roomInfo ?? [],
+                inclusions:     hotelReview.option?.inclusions ?? hotelOption.inclusions ?? [],
+                meal_basis:     hotelReview.option?.mealBasis ?? hotelOption.mealBasis ?? null,
+                booking_notes:  hotelReview.option?.bookingNotes ?? hotelOption.bookingNotes ?? null,
+                compliance:     hotelReview.option?.compliance ?? hotelOption.compliance ?? null,
+                pricing_breakdown: {
+                    base_price: hotelPricingBreakdown.basePrice ?? 0,
+                    taxes:      hotelPricingBreakdown.taxes ?? 0,
+                    mf:         hotelPricingBreakdown.mf ?? 0,
+                    mft:        hotelPricingBreakdown.mft ?? 0,
+                    discount:   hotelPricingBreakdown.discount ?? 0,
+                }
             },
             flight: {
                 booking_id:          flightReview.bookingId,
@@ -630,8 +647,11 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
                 airline_name:        flightOption.airlineName,
                 flight_number:       flightOption.flightNumber  ?? null,
                 departure_time:      flightOption.departureTime ?? null,
-                session_ttl_seconds: flightReview.conditions?.st ?? null,
+                session_ttl_seconds: flightTtl,
                 alerts:              flightReview.alerts ?? [],
+                fare_rules:          flightReview.fareRuleInformation ?? null,
+                pricing_breakdown:   flightReview.totalPriceInfo ?? null,
+                baggage:             flightReview.tripInfos?.[0]?.sI?.[0]?.ba ?? null,
             },
             total_amount: hotelAmount + flightAmount,
             currency:     'INR',
