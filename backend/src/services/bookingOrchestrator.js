@@ -21,7 +21,7 @@ const HOTEL_DETAILS_POLL_DELAY_MS = 2000;
  * TripJack hotel statuses that are transient (still in-progress).
  * We poll until the status leaves this set or we exhaust all attempts.
  */
-const TRANSIENT_HOTEL_STATUSES = new Set( [ 'BOOK_REQUESTED', 'PAYMENT_SUCCESS' ] );
+const TRANSIENT_HOTEL_STATUSES = new Set(['BOOK_REQUESTED', 'PAYMENT_SUCCESS']);
 
 // ─── Passenger Transformers ───────────────────────────────────────────────────
 
@@ -33,22 +33,22 @@ const TRANSIENT_HOTEL_STATUSES = new Set( [ 'BOOK_REQUESTED', 'PAYMENT_SUCCESS' 
  * @param {object} p - A row from the `booking_passengers` table.
  * @returns {object} TripJack travellerInfo-shaped object.
  */
-function toFlightTraveller( p ) {
+function toFlightTraveller(p) {
     const traveller = {
-        ti:  TITLE_TO_TJ_TITLE[ p.title ] ?? p.title,
-        fN:  p.first_name,
-        lN:  p.last_name,
-        pt:  p.pax_type.toUpperCase(),
+        ti: TITLE_TO_TJ_TITLE[p.title] ?? p.title,
+        fN: p.first_name,
+        lN: p.last_name,
+        pt: p.pax_type.toUpperCase(),
         dob: p.date_of_birth,
     };
 
-    if ( p.passport_number ) {
+    if (p.passport_number) {
         traveller.pNum = p.passport_number;
         traveller.pNat = p.nationality;
     }
 
-    if ( p.passport_expiry ) traveller.eD  = p.passport_expiry;
-    if ( p.pan_number      ) traveller.pan = p.pan_number;
+    if (p.passport_expiry) traveller.eD = p.passport_expiry;
+    if (p.pan_number) traveller.pan = p.pan_number;
 
     return traveller;
 }
@@ -61,24 +61,24 @@ function toFlightTraveller( p ) {
  * @returns {{ hotel: object, flight: object } | null}
  *   Delivery info object, or `null` if lead passenger is missing email/phone.
  */
-function buildDeliveryInfo( passengers ) {
-    const leadPassenger = passengers.find( p => p.is_lead ) ?? passengers[ 0 ];
-    const email         = leadPassenger?.email;
-    const phone         = leadPassenger?.phone;
-    const rawCode       = leadPassenger?.phone_country_code || '+91';
-    const phoneCode     = rawCode.startsWith( '+' ) ? rawCode : `+${rawCode}`;
+function buildDeliveryInfo(passengers) {
+    const leadPassenger = passengers.find(p => p.is_lead) ?? passengers[0];
+    const email = leadPassenger?.email;
+    const phone = leadPassenger?.phone;
+    const rawCode = leadPassenger?.phone_country_code || '+91';
+    const phoneCode = rawCode.startsWith('+') ? rawCode : `+${rawCode}`;
 
-    if ( !email || !phone ) return null;
+    if (!email || !phone) return null;
 
     return {
         hotel: {
-            emails:   [ email ],
-            contacts: [ phone ],
-            code:     [ phoneCode ],
+            emails: [email],
+            contacts: [phone],
+            code: [phoneCode],
         },
         flight: {
-            emails:   [ email ],
-            contacts: [ `${phoneCode}${phone}` ],
+            emails: [email],
+            contacts: [`${phoneCode}${phone}`],
         },
     };
 }
@@ -91,40 +91,40 @@ function buildDeliveryInfo( passengers ) {
  * @param {object[]} roomConfig  - Persisted `room_config[]` from `bookings` table.
  * @returns {object[]} TripJack `roomTravellerInfo` array.
  */
-function toHotelRoomTravellers( passengers, roomConfig ) {
-    const byLeadFirst = ( a, b ) => ( b.is_lead ? 1 : 0 ) - ( a.is_lead ? 1 : 0 );
+function toHotelRoomTravellers(passengers, roomConfig) {
+    const byLeadFirst = (a, b) => (b.is_lead ? 1 : 0) - (a.is_lead ? 1 : 0);
 
-    const adults   = passengers.filter( p => p.pax_type === 'adult' ).sort( byLeadFirst );
-    const children = passengers.filter( p => p.pax_type === 'child' );
+    const adults = passengers.filter(p => p.pax_type === 'adult').sort(byLeadFirst);
+    const children = passengers.filter(p => p.pax_type === 'child');
 
     let adultIdx = 0;
     let childIdx = 0;
 
-    return roomConfig.map( room => {
+    return roomConfig.map(room => {
         const roomPassengers = [
-            ...adults.slice( adultIdx, adultIdx + room.adults ),
-            ...children.slice( childIdx, childIdx + ( room.children ?? 0 ) ),
+            ...adults.slice(adultIdx, adultIdx + room.adults),
+            ...children.slice(childIdx, childIdx + (room.children ?? 0)),
         ];
 
         adultIdx += room.adults;
         childIdx += room.children ?? 0;
 
         return {
-            travellerInfo: roomPassengers.map( p => {
+            travellerInfo: roomPassengers.map(p => {
                 const traveller = {
-                    ti: TITLE_TO_TJ_TITLE[ p.title ] ?? p.title,
+                    ti: TITLE_TO_TJ_TITLE[p.title] ?? p.title,
                     fN: p.first_name,
                     lN: p.last_name,
                     pt: p.pax_type.toUpperCase(),
                 };
 
-                if ( p.pan_number      ) traveller.pan  = p.pan_number;
-                if ( p.passport_number ) traveller.pNum = p.passport_number;
+                if (p.pan_number) traveller.pan = p.pan_number;
+                if (p.passport_number) traveller.pNum = p.passport_number;
 
                 return traveller;
-            } ),
+            }),
         };
-    } );
+    });
 }
 
 // ─── Provider Response Helpers ────────────────────────────────────────────────
@@ -136,8 +136,8 @@ function toHotelRoomTravellers( passengers, roomConfig ) {
  * @param {string} fallback - Fallback message if no specific error is found.
  * @returns {string}
  */
-function getProviderError( data, fallback ) {
-    return data?.errors?.[ 0 ]?.message ?? data?.status?.message ?? fallback;
+function getProviderError(data, fallback) {
+    return data?.errors?.[0]?.message ?? data?.status?.message ?? fallback;
 }
 
 /**
@@ -147,7 +147,7 @@ function getProviderError( data, fallback ) {
  * @param {object} data - Response data from TripJack.
  * @returns {boolean}
  */
-function isProviderFailure( data ) {
+function isProviderFailure(data) {
     return data?.status && data.status.success === false;
 }
 
@@ -158,17 +158,17 @@ function isProviderFailure( data ) {
  * @param {object} bookingDetails - Flight booking details response from TripJack.
  * @returns {string | null} The extracted PNR, or `null` if not found.
  */
-function extractFlightPnr( bookingDetails ) {
+function extractFlightPnr(bookingDetails) {
     const travellerInfos = bookingDetails?.itemInfos?.AIR?.travellerInfos ?? [];
 
-    for ( const traveller of travellerInfos ) {
+    for (const traveller of travellerInfos) {
         const pnrDetails = traveller?.pnrDetails;
-        if ( !pnrDetails || typeof pnrDetails !== 'object' ) continue;
+        if (!pnrDetails || typeof pnrDetails !== 'object') continue;
 
-        const pnr = Object.values( pnrDetails )
-            .find( value => typeof value === 'string' && value.trim() );
+        const pnr = Object.values(pnrDetails)
+            .find(value => typeof value === 'string' && value.trim());
 
-        if ( pnr ) return pnr;
+        if (pnr) return pnr;
     }
 
     return null;
@@ -183,12 +183,12 @@ function extractFlightPnr( bookingDetails ) {
  * @param {string | undefined} dt - Full departure datetime string from TripJack.
  * @returns {string | null} "HH:MM" string, or `null` if not parseable.
  */
-function extractDepartureTime( dt ) {
-    if ( !dt ) return null;
-    
-    const timePart = dt.split( 'T' )[ 1 ];
+function extractDepartureTime(dt) {
+    if (!dt) return null;
 
-    return timePart ? timePart.slice( 0, 5 ) : null;
+    const timePart = dt.split('T')[1];
+
+    return timePart ? timePart.slice(0, 5) : null;
 }
 
 /**
@@ -198,11 +198,11 @@ function extractDepartureTime( dt ) {
  * @param {object} booking    - The `bookings` DB row (for `adults` and `children` counts).
  * @returns {number} Total flight fare in INR.
  */
-function getFlightFareTotal( priceEntry, booking ) {
-    const adultFare = Number( priceEntry?.fd?.ADULT?.fC?.TF ?? 0 );
-    const childFare = Number( priceEntry?.fd?.CHILD?.fC?.TF ?? 0 );
+function getFlightFareTotal(priceEntry, booking) {
+    const adultFare = Number(priceEntry?.fd?.ADULT?.fC?.TF ?? 0);
+    const childFare = Number(priceEntry?.fd?.CHILD?.fC?.TF ?? 0);
 
-    return ( adultFare * booking.adults ) + ( childFare * booking.children );
+    return (adultFare * booking.adults) + (childFare * booking.children);
 }
 
 /**
@@ -211,34 +211,43 @@ function getFlightFareTotal( priceEntry, booking ) {
  *
  * @param {object} searchData - Raw TripJack search response.
  * @param {object} booking    - The `bookings` DB row.
- * @returns {Array<{ priceId, airlineCode, airlineName, flightNumber, departureTime, total }>}
+ * @returns {Array<{ priceId, airlineCode, airlineName, flightNumber, departureTime, arrivalDate, total }>}
  */
-function extractAllFlightOptions( searchData, booking ) {
-    const tripInfos = Object.values( searchData?.searchResult?.tripInfos ?? {} )
-        .flatMap( value => Array.isArray( value ) ? value : [] );
+function extractAllFlightOptions(searchData, booking) {
+    const tripInfos = Object.values(searchData?.searchResult?.tripInfos ?? {})
+        .flatMap(value => Array.isArray(value) ? value : []);
 
     const options = [];
 
-    for ( const tripInfo of tripInfos ) {
+    for (const tripInfo of tripInfos) {
         // For international round trips, TripJack returns COMBO tripInfos
         // where sI[0] is the first (outbound) leg.
-        const firstSegment = tripInfo.sI?.[ 0 ];
-        const airlineCode  = firstSegment?.fD?.aI?.code;
-        const airlineName  = firstSegment?.fD?.aI?.name;
+        const firstSegment = tripInfo.sI?.[0];
+        const airlineCode = firstSegment?.fD?.aI?.code;
+        const airlineName = firstSegment?.fD?.aI?.name;
         const flightNumber = firstSegment?.fD?.fN;
-        const departureTime = extractDepartureTime( firstSegment?.dt );
+        const departureTime = extractDepartureTime(firstSegment?.dt);
 
-        for ( const priceEntry of tripInfo.totalPriceList ?? [] ) {
-            if ( !priceEntry?.id ) continue;
+        // Outbound segments have isRs falsy; return segments have isRs truthy.
+        // The last outbound segment's arrival datetime tells us when the
+        // traveller actually lands at the destination (may be a different day
+        // than the departure date for long-haul routes).
+        const outboundSegs = (tripInfo.sI || []).filter(s => !s.isRs);
+        const lastOutbound = outboundSegs[outboundSegs.length - 1];
+        const arrivalDate = lastOutbound?.at?.slice(0, 10) || null;
 
-            options.push( {
+        for (const priceEntry of tripInfo.totalPriceList ?? []) {
+            if (!priceEntry?.id) continue;
+
+            options.push({
                 priceId: priceEntry.id,
                 airlineCode,
                 airlineName,
                 flightNumber,
                 departureTime,
-                total: getFlightFareTotal( priceEntry, booking ),
-            } );
+                arrivalDate,
+                total: getFlightFareTotal(priceEntry, booking),
+            });
         }
     }
 
@@ -266,63 +275,63 @@ function extractAllFlightOptions( searchData, booking ) {
  *   Preferred airline code used when `selectedFlight` is absent.
  * @returns {{ option: object, availability: string, reason?: string } | { option: null }}
  */
-function selectFlightOption( allOptions, selectedFlight, fallbackAirlineCode ) {
-    if ( !allOptions.length ) return { option: null };
+function selectFlightOption(allOptions, selectedFlight, fallbackAirlineCode) {
+    if (!allOptions.length) return { option: null };
 
-    if ( selectedFlight ) {
+    if (selectedFlight) {
         const { airline_code, departure_time } = selectedFlight;
         const airlineUpper = airline_code.toUpperCase();
 
         // Level 1: exact match — same airline + same departure time
-        const exactMatch = allOptions.find( o =>
+        const exactMatch = allOptions.find(o =>
             o.airlineCode === airlineUpper &&
             o.departureTime === departure_time,
         );
-        if ( exactMatch ) {
+        if (exactMatch) {
             return { option: exactMatch, availability: 'exact_match' };
         }
 
         // Level 2: same airline, different time — cheapest of that airline
         const sameAirlineOptions = allOptions
-            .filter( o => o.airlineCode === airlineUpper )
-            .sort( ( a, b ) => a.total - b.total );
+            .filter(o => o.airlineCode === airlineUpper)
+            .sort((a, b) => a.total - b.total);
 
-        if ( sameAirlineOptions.length ) {
-            const best = sameAirlineOptions[ 0 ];
-            
+        if (sameAirlineOptions.length) {
+            const best = sameAirlineOptions[0];
+
             return {
                 option: best,
                 availability: 'flight_changed',
                 reason: `Your selected ${airline_code} flight at ${departure_time} is no longer available. ` +
                     `Showing the next available ${airline_code} option` +
-                    ( best.flightNumber ? ` (flight ${best.flightNumber}` : '' ) +
-                    ( best.departureTime ? ` departing at ${best.departureTime})` : ')' ) +
+                    (best.flightNumber ? ` (flight ${best.flightNumber}` : '') +
+                    (best.departureTime ? ` departing at ${best.departureTime})` : ')') +
                     '.',
             };
         }
 
         // Level 3: airline not available at all — cheapest of any airline
-        const cheapest = [ ...allOptions ].sort( ( a, b ) => a.total - b.total )[ 0 ];
-        
+        const cheapest = [...allOptions].sort((a, b) => a.total - b.total)[0];
+
         return {
             option: cheapest,
             availability: 'sold_out',
             reason: `No ${airline_code} flights are available for this route. ` +
                 `Showing the next best available option` +
-                ( cheapest.airlineName ? ` (${cheapest.airlineName}` : '' ) +
-                ( cheapest.flightNumber ? `, flight ${cheapest.flightNumber}` : '' ) +
-                ( cheapest.departureTime ? `, departing at ${cheapest.departureTime})` : ')' ) +
+                (cheapest.airlineName ? ` (${cheapest.airlineName}` : '') +
+                (cheapest.flightNumber ? `, flight ${cheapest.flightNumber}` : '') +
+                (cheapest.departureTime ? `, departing at ${cheapest.departureTime})` : ')') +
                 '.',
         };
     }
 
     // No snapshot — use preferred airline filter or cheapest
     const preferred = fallbackAirlineCode
-        ? allOptions.filter( o => o.airlineCode === fallbackAirlineCode.toUpperCase() )
+        ? allOptions.filter(o => o.airlineCode === fallbackAirlineCode.toUpperCase())
         : [];
 
-    const option = ( preferred.length ? preferred : allOptions )
-        .sort( ( a, b ) => a.total - b.total )[ 0 ];
+    const option = (preferred.length ? preferred : allOptions)
+        .sort((a, b) => a.total - b.total)[0];
 
     return { option, availability: 'not_specified' };
 }
@@ -337,17 +346,17 @@ function selectFlightOption( allOptions, selectedFlight, fallbackAirlineCode ) {
  * @param {string}   [hotelOptionId]  - Optional preferred option ID.
  * @returns {object | null}
  */
-function selectHotelOption( options, hotelOptionId ) {
-    if ( !Array.isArray( options ) || options.length === 0 ) return null;
+function selectHotelOption(options, hotelOptionId) {
+    if (!Array.isArray(options) || options.length === 0) return null;
 
-    if ( hotelOptionId ) {
-        const selected = options.find( option => option.optionId === hotelOptionId );
-        if ( selected ) return selected;
+    if (hotelOptionId) {
+        const selected = options.find(option => option.optionId === hotelOptionId);
+        if (selected) return selected;
     }
 
-    return [ ...options ].sort(
-        ( a, b ) => Number( a.pricing?.totalPrice ?? Infinity ) - Number( b.pricing?.totalPrice ?? Infinity ),
-    )[ 0 ];
+    return [...options].sort(
+        (a, b) => Number(a.pricing?.totalPrice ?? Infinity) - Number(b.pricing?.totalPrice ?? Infinity),
+    )[0];
 }
 
 // ─── DB State Machine ─────────────────────────────────────────────────────────
@@ -360,14 +369,14 @@ function selectHotelOption( options, hotelOptionId ) {
  * @param {object} fields
  * @returns {Promise<void>}
  */
-async function updateBooking( bookingId, fields ) {
+async function updateBooking(bookingId, fields) {
     const { error } = await supabase
-        .from( 'bookings' )
-        .update( { ...fields, updated_at: new Date().toISOString() } )
-        .eq( 'id', bookingId );
+        .from('bookings')
+        .update({ ...fields, updated_at: new Date().toISOString() })
+        .eq('id', bookingId);
 
-    if ( error ) {
-        console.error( `[orchestrator] DB update failed for booking #${bookingId}:`, error.message );
+    if (error) {
+        console.error(`[orchestrator] DB update failed for booking #${bookingId}:`, error.message);
     }
 }
 
@@ -378,26 +387,26 @@ async function updateBooking( bookingId, fields ) {
  * @param {string} tjHotelBookingId - TripJack hotel booking ID.
  * @returns {Promise<object | null>}
  */
-async function getHotelBookingDetailsSafely( bookingId, tjHotelBookingId ) {
+async function getHotelBookingDetailsSafely(bookingId, tjHotelBookingId) {
     let latestDetails = null;
 
-    for ( let attempt = 1; attempt <= HOTEL_DETAILS_POLL_ATTEMPTS; attempt++ ) {
+    for (let attempt = 1; attempt <= HOTEL_DETAILS_POLL_ATTEMPTS; attempt++) {
         try {
-            latestDetails = await hotelClient.getHotelBookingDetails( tjHotelBookingId );
+            latestDetails = await hotelClient.getHotelBookingDetails(tjHotelBookingId);
 
             const hotelStatus = latestDetails?.order?.status;
-            if ( hotelStatus && !TRANSIENT_HOTEL_STATUSES.has( hotelStatus ) ) {
+            if (hotelStatus && !TRANSIENT_HOTEL_STATUSES.has(hotelStatus)) {
                 return latestDetails;
             }
-        } catch ( err ) {
+        } catch (err) {
             console.error(
                 `[orchestrator] Hotel booking-details failed for #${bookingId} / ${tjHotelBookingId}:`,
-                err.response?.data?.errors?.[ 0 ]?.message ?? err.message,
+                err.response?.data?.errors?.[0]?.message ?? err.message,
             );
         }
 
-        if ( attempt < HOTEL_DETAILS_POLL_ATTEMPTS ) {
-            await wait( HOTEL_DETAILS_POLL_DELAY_MS );
+        if (attempt < HOTEL_DETAILS_POLL_ATTEMPTS) {
+            await wait(HOTEL_DETAILS_POLL_DELAY_MS);
         }
     }
 
@@ -411,13 +420,13 @@ async function getHotelBookingDetailsSafely( bookingId, tjHotelBookingId ) {
  * @param {string} flightBookingId - TripJack flight booking ID.
  * @returns {Promise<object | null>}
  */
-async function getFlightBookingDetailsSafely( bookingId, flightBookingId ) {
+async function getFlightBookingDetailsSafely(bookingId, flightBookingId) {
     try {
-        return await flightClient.getFlightBookingDetails( flightBookingId );
-    } catch ( err ) {
+        return await flightClient.getFlightBookingDetails(flightBookingId);
+    } catch (err) {
         console.error(
             `[orchestrator] Flight booking-details failed for #${bookingId} / ${flightBookingId}:`,
-            err.response?.data?.errors?.[ 0 ]?.message ?? err.message,
+            err.response?.data?.errors?.[0]?.message ?? err.message,
         );
 
         return null;
@@ -449,54 +458,117 @@ async function getFlightBookingDetailsSafely( bookingId, flightBookingId ) {
  * @param {string}  [params.flightAirlineCode] - Airline override (fallback path only).
  * @returns {Promise<{ success: boolean, error?: string, review?: object }>}
  */
-export async function reviewPackageBooking( { booking, hotelOptionId, flightAirlineCode } ) {
+export async function reviewPackageBooking({ booking, hotelOptionId, flightAirlineCode }) {
     const roomConfig = booking.room_config;
 
-    if ( !booking.hotel_id ) {
+    if (!booking.hotel_id) {
         return { success: false, error: 'hotel_id is required before review' };
     }
-    if ( !Array.isArray( roomConfig ) || roomConfig.length === 0 ) {
+    if (!Array.isArray(roomConfig) || roomConfig.length === 0) {
         return { success: false, error: 'Booking room_config is missing. Recreate the booking with rooms[] from the frontend.' };
     }
 
     const { data: hotel, error: hotelLookupErr } = await supabase
-        .from( 'hotels' )
-        .select( 'tj_hotel_id, name' )
-        .eq( 'id', booking.hotel_id )
+        .from('hotels')
+        .select('tj_hotel_id, name')
+        .eq('id', booking.hotel_id)
         .single();
 
-    if ( hotelLookupErr || !hotel ) {
+    if (hotelLookupErr || !hotel) {
         return { success: false, error: 'Selected hotel was not found' };
     }
 
-    const correlationId = generateCorrelationId( booking.id );
+    const correlationId = generateCorrelationId(booking.id);
+
+    // ── F1: Search flights ────────────────────────────────────────────────────
+    // Flight search runs BEFORE hotel pricing so we can derive the outbound
+    // arrival date and use it as the hotel check-in date. For long-haul routes
+    // (e.g. DEL → LHR), the flight may arrive the next calendar day.
+    let flightSearch;
+    try {
+        flightSearch = await flightClient.searchFlights(
+            booking.origin_iata,
+            booking.destination_iata,
+            booking.departure_date,
+            booking.return_date,
+            { ADULT: booking.adults, CHILD: booking.children },
+        );
+    } catch (err) {
+        await updateBooking(booking.id, { status: 'review_failed' });
+
+        return { success: false, error: getProviderError(err.response?.data ?? err, 'Flight search failed at provider') };
+    }
+
+    if (isProviderFailure(flightSearch)) {
+        await updateBooking(booking.id, { status: 'review_failed' });
+
+        return { success: false, error: getProviderError(flightSearch, 'Flight search failed at provider') };
+    }
+
+    // ── F2: Select + match flight ─────────────────────────────────────────────
+    //
+    // We use booking.selected_flight (what the user saw and clicked) for 3-level
+    // matching. If that's absent, we fall back to preferred_airline_code.
+    //
+    const allFlightOptions = extractAllFlightOptions(flightSearch, booking);
+    const { option: flightOption, availability, reason: flightChangedReason } = selectFlightOption(
+        allFlightOptions,
+        booking.selected_flight ?? null,
+        flightAirlineCode,
+    );
+
+    if (!flightOption) {
+        await updateBooking(booking.id, { status: 'review_failed' });
+
+        return { success: false, error: 'No flights are available for this route and date' };
+    }
+
+    console.log(
+        `[orchestrator] Flight selected for #${booking.id}: ` +
+        `${flightOption.airlineCode} ${flightOption.flightNumber ?? ''} ` +
+        `at ${flightOption.departureTime} | availability=${availability}`,
+    );
+
+    // ── Derive hotel dates from flight arrival ────────────────────────────────
+    // Hotel check-in = outbound flight arrival date (NOT departure date).
+    // For overnight flights the arrival date may be the day after departure.
+    // Falls back to departure_date when TripJack does not provide arrival info.
+    const hotelCheckIn = flightOption.arrivalDate || booking.departure_date;
+    const hotelCheckOut = booking.return_date;
+
+    if (hotelCheckIn !== booking.departure_date) {
+        console.log(
+            `[orchestrator] Hotel dates adjusted for #${booking.id}: ` +
+            `check-in shifted from ${booking.departure_date} to ${hotelCheckIn} (flight arrives next day)`,
+        );
+    }
 
     // ── H2: Price hotel ───────────────────────────────────────────────────────
     let hotelPricing;
     try {
         hotelPricing = await hotelClient.priceHotel(
             hotel.tj_hotel_id,
-            booking.departure_date,
-            booking.return_date,
+            hotelCheckIn,
+            hotelCheckOut,
             roomConfig,
             correlationId,
         );
-    } catch ( err ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
-        
-        return { success: false, error: getProviderError( err.response?.data ?? err, 'Hotel pricing failed at provider' ) };
+    } catch (err) {
+        await updateBooking(booking.id, { status: 'review_failed' });
+
+        return { success: false, error: getProviderError(err.response?.data ?? err, 'Hotel pricing failed at provider') };
     }
 
-    if ( isProviderFailure( hotelPricing ) ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
+    if (isProviderFailure(hotelPricing)) {
+        await updateBooking(booking.id, { status: 'review_failed' });
 
-        return { success: false, error: getProviderError( hotelPricing, 'Hotel pricing failed at provider' ) };
+        return { success: false, error: getProviderError(hotelPricing, 'Hotel pricing failed at provider') };
     }
 
     // ── H3: Review hotel ──────────────────────────────────────────────────────
-    const hotelOption = selectHotelOption( hotelPricing.options, hotelOptionId );
-    if ( !hotelOption ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
+    const hotelOption = selectHotelOption(hotelPricing.options, hotelOptionId);
+    if (!hotelOption) {
+        await updateBooking(booking.id, { status: 'review_failed' });
 
         return { success: false, error: 'No hotel option is available for the selected room configuration' };
     }
@@ -509,80 +581,34 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
             hotel.tj_hotel_id,
             correlationId,
         );
-    } catch ( err ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
-        
-        return { success: false, error: getProviderError( err.response?.data ?? err, 'Hotel review failed at provider' ) };
+    } catch (err) {
+        await updateBooking(booking.id, { status: 'review_failed' });
+
+        return { success: false, error: getProviderError(err.response?.data ?? err, 'Hotel review failed at provider') };
     }
 
-    if ( isProviderFailure( hotelReview ) ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
+    if (isProviderFailure(hotelReview)) {
+        await updateBooking(booking.id, { status: 'review_failed' });
 
-        return { success: false, error: getProviderError( hotelReview, 'Hotel review failed at provider' ) };
+        return { success: false, error: getProviderError(hotelReview, 'Hotel review failed at provider') };
     }
 
-    const hotelAmount = Number( hotelReview.option?.pricing?.totalPrice ?? hotelOption.pricing?.totalPrice );
-
-    // ── F1: Search flights ────────────────────────────────────────────────────
-    let flightSearch;
-    try {
-        flightSearch = await flightClient.searchFlights(
-            booking.origin_iata,
-            booking.destination_iata,
-            booking.departure_date,
-            booking.return_date,
-            { ADULT: booking.adults, CHILD: booking.children },
-        );
-    } catch ( err ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
-        
-        return { success: false, error: getProviderError( err.response?.data ?? err, 'Flight search failed at provider' ) };
-    }
-
-    if ( isProviderFailure( flightSearch ) ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
-
-        return { success: false, error: getProviderError( flightSearch, 'Flight search failed at provider' ) };
-    }
-
-    // ── F2: Select + match flight ─────────────────────────────────────────────
-    //
-    // We use booking.selected_flight (what the user saw and clicked) for 3-level
-    // matching. If that's absent, we fall back to preferred_airline_code.
-    //
-    const allFlightOptions = extractAllFlightOptions( flightSearch, booking );
-    const { option: flightOption, availability, reason: flightChangedReason } = selectFlightOption(
-        allFlightOptions,
-        booking.selected_flight ?? null,
-        flightAirlineCode,
-    );
-
-    if ( !flightOption ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
-
-        return { success: false, error: 'No flights are available for this route and date' };
-    }
-
-    console.log(
-        `[orchestrator] Flight selected for #${booking.id}: ` +
-        `${flightOption.airlineCode} ${flightOption.flightNumber ?? ''} ` +
-        `at ${flightOption.departureTime} | availability=${availability}`,
-    );
+    const hotelAmount = Number(hotelReview.option?.pricing?.totalPrice ?? hotelOption.pricing?.totalPrice);
 
     // ── F3: Review flight ─────────────────────────────────────────────────────
     let flightReview;
     try {
-        flightReview = await flightClient.reviewFlight( flightOption.priceId );
-    } catch ( err ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
-        
-        return { success: false, error: getProviderError( err.response?.data ?? err, 'Flight review failed at provider' ) };
+        flightReview = await flightClient.reviewFlight(flightOption.priceId);
+    } catch (err) {
+        await updateBooking(booking.id, { status: 'review_failed' });
+
+        return { success: false, error: getProviderError(err.response?.data ?? err, 'Flight review failed at provider') };
     }
 
-    if ( isProviderFailure( flightReview ) ) {
-        await updateBooking( booking.id, { status: 'review_failed' } );
+    if (isProviderFailure(flightReview)) {
+        await updateBooking(booking.id, { status: 'review_failed' });
 
-        return { success: false, error: getProviderError( flightReview, 'Flight review failed at provider' ) };
+        return { success: false, error: getProviderError(flightReview, 'Flight review failed at provider') };
     }
 
     const flightAmount = Number(
@@ -590,51 +616,53 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
     );
 
     // ── Persist reviewed state ────────────────────────────────────────────────
-    await updateBooking( booking.id, {
-        status:                    'reviewed',
-        tj_hotel_booking_id:       hotelReview.bookingId,
-        tj_hotel_booking_status:   'REVIEWED',
+    await updateBooking(booking.id, {
+        status: 'reviewed',
+        tj_hotel_booking_id: hotelReview.bookingId,
+        tj_hotel_booking_status: 'REVIEWED',
         hotel_cancellation_policy: hotelReview.option?.cancellation ?? hotelOption.cancellation ?? null,
-        hotel_amount:              hotelAmount,
-        hotel_status:              'REVIEWED',
-        flight_booking_id:         flightReview.bookingId,
-        flight_status:             'REVIEWED',
-        flight_amount:             flightAmount,
-        total_amount:              hotelAmount + flightAmount,
-    } );
+        hotel_amount: hotelAmount,
+        hotel_status: 'REVIEWED',
+        flight_booking_id: flightReview.bookingId,
+        flight_status: 'REVIEWED',
+        flight_amount: flightAmount,
+        total_amount: hotelAmount + flightAmount,
+    });
 
     return {
         success: true,
         review: {
-            booking_id:   booking.id,
-            status:       'reviewed',
+            booking_id: booking.id,
+            status: 'reviewed',
             // Availability tells the frontend whether the user's original flight was matched.
             // "exact_match" → nothing to tell the user.
             // "flight_changed" / "sold_out" → surface flightChangedReason to the user.
             availability,
-            ...( flightChangedReason ? { flight_changed_reason: flightChangedReason } : {} ),
+            ...(flightChangedReason ? { flight_changed_reason: flightChangedReason } : {}),
             hotel: {
-                name:           hotel.name,
-                booking_id:     hotelReview.bookingId,
-                amount:         hotelAmount,
-                price_changed:  hotelReview.priceChanged ?? false,
+                name: hotel.name,
+                booking_id: hotelReview.bookingId,
+                amount: hotelAmount,
+                check_in: hotelCheckIn,
+                check_out: hotelCheckOut,
+                price_changed: hotelReview.priceChanged ?? false,
                 onhold_allowed: hotelReview.onholdAllowed ?? false,
-                deadline:       hotelReview.option?.deadlineDateTime ?? null,
-                option_id:      hotelReview.option?.optionId ?? hotelOption.optionId,
-                cancellation:   hotelReview.option?.cancellation ?? hotelOption.cancellation ?? null,
+                deadline: hotelReview.option?.deadlineDateTime ?? null,
+                option_id: hotelReview.option?.optionId ?? hotelOption.optionId,
+                cancellation: hotelReview.option?.cancellation ?? hotelOption.cancellation ?? null,
             },
             flight: {
-                booking_id:          flightReview.bookingId,
-                amount:              flightAmount,
-                airline_code:        flightOption.airlineCode,
-                airline_name:        flightOption.airlineName,
-                flight_number:       flightOption.flightNumber  ?? null,
-                departure_time:      flightOption.departureTime ?? null,
+                booking_id: flightReview.bookingId,
+                amount: flightAmount,
+                airline_code: flightOption.airlineCode,
+                airline_name: flightOption.airlineName,
+                flight_number: flightOption.flightNumber ?? null,
+                departure_time: flightOption.departureTime ?? null,
                 session_ttl_seconds: flightReview.conditions?.st ?? null,
-                alerts:              flightReview.alerts ?? [],
+                alerts: flightReview.alerts ?? [],
             },
             total_amount: hotelAmount + flightAmount,
-            currency:     'INR',
+            currency: 'INR',
         },
     };
 }
@@ -663,15 +691,15 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
  * @param {object[]} params.passengers - `booking_passengers` rows for this booking.
  * @returns {Promise<{ success: boolean, error?: string, booking?: object }>}
  */
-export async function orchestrateBooking( { booking, passengers } ) {
-    const bookingId       = booking.id;
-    const roomConfig      = booking.room_config;
-    const hotelBookingId  = booking.tj_hotel_booking_id;
-    const hotelAmount     = Number( booking.hotel_amount );
+export async function orchestrateBooking({ booking, passengers }) {
+    const bookingId = booking.id;
+    const roomConfig = booking.room_config;
+    const hotelBookingId = booking.tj_hotel_booking_id;
+    const hotelAmount = Number(booking.hotel_amount);
     const flightBookingId = booking.flight_booking_id;
-    const flightAmount    = Number( booking.flight_amount );
+    const flightAmount = Number(booking.flight_amount);
 
-    if ( !Array.isArray( roomConfig ) || roomConfig.length === 0 ) {
+    if (!Array.isArray(roomConfig) || roomConfig.length === 0) {
         return { success: false, error: 'Booking room_config is missing. Recreate the booking with rooms[] from the frontend.' };
     }
 
@@ -680,18 +708,18 @@ export async function orchestrateBooking( { booking, passengers } ) {
     if (
         !hotelBookingId || !flightBookingId ||
         booking.hotel_amount === null || booking.flight_amount === null ||
-        Number.isNaN( hotelAmount ) || Number.isNaN( flightAmount )
+        Number.isNaN(hotelAmount) || Number.isNaN(flightAmount)
     ) {
         return { success: false, error: 'Booking must be reviewed before it can be confirmed' };
     }
 
-    const delivery = buildDeliveryInfo( passengers );
-    if ( !delivery ) {
+    const delivery = buildDeliveryInfo(passengers);
+    if (!delivery) {
         return { success: false, error: 'Lead passenger email and phone are required for TripJack booking delivery' };
     }
 
     // ── Step 1: Book Hotel ────────────────────────────────────────────────────
-    const roomTravellers = toHotelRoomTravellers( passengers, roomConfig );
+    const roomTravellers = toHotelRoomTravellers(passengers, roomConfig);
 
     let tjHotelBookingId = hotelBookingId;
 
@@ -703,39 +731,39 @@ export async function orchestrateBooking( { booking, passengers } ) {
             delivery.hotel,
             hotelAmount,
         );
-    } catch ( err ) {
-        const msg = err.response?.data?.errors?.[ 0 ]?.message ?? err.message ?? 'Hotel booking failed';
-        console.error( `[orchestrator] Hotel booking threw for #${bookingId}:`, msg );
-        await updateBooking( bookingId, { status: 'hotel_failed', hotel_status: 'FAILED' } );
-        
+    } catch (err) {
+        const msg = err.response?.data?.errors?.[0]?.message ?? err.message ?? 'Hotel booking failed';
+        console.error(`[orchestrator] Hotel booking threw for #${bookingId}:`, msg);
+        await updateBooking(bookingId, { status: 'hotel_failed', hotel_status: 'FAILED' });
+
         return { success: false, error: `Hotel booking failed: ${msg}` };
     }
 
-    if ( hotelResult?.status && !hotelResult.status.success ) {
-        const msg = hotelResult.errors?.[ 0 ]?.message ?? 'Hotel booking rejected by provider';
-        await updateBooking( bookingId, { status: 'hotel_failed', hotel_status: 'FAILED' } );
-        
+    if (hotelResult?.status && !hotelResult.status.success) {
+        const msg = hotelResult.errors?.[0]?.message ?? 'Hotel booking rejected by provider';
+        await updateBooking(bookingId, { status: 'hotel_failed', hotel_status: 'FAILED' });
+
         return { success: false, error: `Hotel booking failed: ${msg}` };
     }
 
     tjHotelBookingId = hotelResult.bookingId ?? hotelResult.order?.bookingId ?? hotelBookingId;
 
-    const hotelDetails = await getHotelBookingDetailsSafely( bookingId, tjHotelBookingId );
-    const hotelStatus  = hotelDetails?.order?.status ?? hotelResult.order?.status ?? 'BOOK_REQUESTED';
+    const hotelDetails = await getHotelBookingDetailsSafely(bookingId, tjHotelBookingId);
+    const hotelStatus = hotelDetails?.order?.status ?? hotelResult.order?.status ?? 'BOOK_REQUESTED';
 
-    await updateBooking( bookingId, {
-        status:                  'hotel_booked',
-        tj_hotel_booking_id:     tjHotelBookingId,
+    await updateBooking(bookingId, {
+        status: 'hotel_booked',
+        tj_hotel_booking_id: tjHotelBookingId,
         tj_hotel_booking_status: hotelStatus,
-        hotel_status:            hotelStatus,
-        hotel_amount:            hotelAmount,
-        hotel_booked_at:         new Date().toISOString(),
-    } );
+        hotel_status: hotelStatus,
+        hotel_amount: hotelAmount,
+        hotel_booked_at: new Date().toISOString(),
+    });
 
-    console.log( `[orchestrator] Hotel booked for #${bookingId} → TJ ID: ${tjHotelBookingId}` );
+    console.log(`[orchestrator] Hotel booked for #${bookingId} → TJ ID: ${tjHotelBookingId}`);
 
     // ── Step 2: Book Flight ───────────────────────────────────────────────────
-    const flightTravellers = passengers.map( toFlightTraveller );
+    const flightTravellers = passengers.map(toFlightTraveller);
 
     let flightResult;
     try {
@@ -745,44 +773,44 @@ export async function orchestrateBooking( { booking, passengers } ) {
             flightTravellers,
             delivery.flight,
         );
-    } catch ( err ) {
-        const msg = err.response?.data?.errors?.[ 0 ]?.message ?? err.message ?? 'Flight booking failed';
-        console.error( `[orchestrator] Flight booking threw for #${bookingId}:`, msg );
-        await _cancelHotelSafely( bookingId, tjHotelBookingId );
-        
+    } catch (err) {
+        const msg = err.response?.data?.errors?.[0]?.message ?? err.message ?? 'Flight booking failed';
+        console.error(`[orchestrator] Flight booking threw for #${bookingId}:`, msg);
+        await _cancelHotelSafely(bookingId, tjHotelBookingId);
+
         return { success: false, error: `Flight booking failed: ${msg}` };
     }
 
-    if ( flightResult?.status && !flightResult.status.success ) {
-        const msg = flightResult.errors?.[ 0 ]?.message ?? 'Flight booking rejected by provider';
-        console.error( `[orchestrator] Flight rejected for #${bookingId}:`, msg );
-        await _cancelHotelSafely( bookingId, tjHotelBookingId );
-        
+    if (flightResult?.status && !flightResult.status.success) {
+        const msg = flightResult.errors?.[0]?.message ?? 'Flight booking rejected by provider';
+        console.error(`[orchestrator] Flight rejected for #${bookingId}:`, msg);
+        await _cancelHotelSafely(bookingId, tjHotelBookingId);
+
         return { success: false, error: `Flight booking failed: ${msg}` };
     }
 
     // ── Step 3: Mark Confirmed ────────────────────────────────────────────────
     const confirmedFlightBookingId = flightResult.bookingId ?? flightResult.order?.bookingId ?? flightBookingId;
-    const flightDetails  = await getFlightBookingDetailsSafely( bookingId, confirmedFlightBookingId );
-    const flightStatus   = flightDetails?.order?.status ?? flightResult.order?.status ?? 'BOOK_REQUESTED';
-    const flightPnr      = extractFlightPnr( flightDetails );
+    const flightDetails = await getFlightBookingDetailsSafely(bookingId, confirmedFlightBookingId);
+    const flightStatus = flightDetails?.order?.status ?? flightResult.order?.status ?? 'BOOK_REQUESTED';
+    const flightPnr = extractFlightPnr(flightDetails);
 
-    await updateBooking( bookingId, {
-        status:            'confirmed',
+    await updateBooking(bookingId, {
+        status: 'confirmed',
         flight_booking_id: confirmedFlightBookingId,
-        flight_pnr:        flightPnr,
-        flight_status:     flightStatus,
-        flight_amount:     flightAmount,
-        flight_booked_at:  new Date().toISOString(),
-        total_amount:      hotelAmount + flightAmount,
-    } );
+        flight_pnr: flightPnr,
+        flight_status: flightStatus,
+        flight_amount: flightAmount,
+        flight_booked_at: new Date().toISOString(),
+        total_amount: hotelAmount + flightAmount,
+    });
 
-    console.log( `[orchestrator] Booking #${bookingId} fully confirmed` );
+    console.log(`[orchestrator] Booking #${bookingId} fully confirmed`);
 
     const { data: finalBooking } = await supabase
-        .from( 'bookings' )
-        .select( '*' )
-        .eq( 'id', bookingId )
+        .from('bookings')
+        .select('*')
+        .eq('id', bookingId)
         .single();
 
     return { success: true, booking: finalBooking };
@@ -800,22 +828,22 @@ export async function orchestrateBooking( { booking, passengers } ) {
  * @param {string} tjHotelBookingId - TripJack hotel booking ID to cancel.
  * @returns {Promise<void>}
  */
-async function _cancelHotelSafely( bookingId, tjHotelBookingId ) {
+async function _cancelHotelSafely(bookingId, tjHotelBookingId) {
     try {
-        await hotelClient.cancelHotel( tjHotelBookingId );
-        await updateBooking( bookingId, {
-            status:                  'cancelled',
+        await hotelClient.cancelHotel(tjHotelBookingId);
+        await updateBooking(bookingId, {
+            status: 'cancelled',
             tj_hotel_booking_status: 'CANCELLED',
-            hotel_status:            'CANCELLED',
-            flight_status:           'FAILED',
-        } );
-        console.log( `[orchestrator] Hotel ${tjHotelBookingId} cancelled after flight failure` );
-    } catch ( cancelErr ) {
-        await updateBooking( bookingId, {
-            status:                  'flight_failed',
+            hotel_status: 'CANCELLED',
+            flight_status: 'FAILED',
+        });
+        console.log(`[orchestrator] Hotel ${tjHotelBookingId} cancelled after flight failure`);
+    } catch (cancelErr) {
+        await updateBooking(bookingId, {
+            status: 'flight_failed',
             tj_hotel_booking_status: 'CANCEL_FAILED',
-            flight_status:           'FAILED',
-        } );
+            flight_status: 'FAILED',
+        });
         console.error(
             `[orchestrator] Hotel cancel FAILED for TJ ID ${tjHotelBookingId} (booking #${bookingId}):`,
             cancelErr.message,
