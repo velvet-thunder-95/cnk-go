@@ -4,6 +4,8 @@ import response from '../utils/response.js';
 import { calculatePerPerson, getPriceTier, minRooms } from '../utils/priceCalculator.js';
 import { isStale } from '../utils/dateHelpers.js';
 import { CHILD_FARE_RATIO } from '../utils/constants.js';
+import { isNextDayArrival } from '../utils/nextDayArrivalHelper.js';
+import { nextDate } from '../utils/nextDateCalculatorHelper.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -75,14 +77,23 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
     // 3. Cheapest hotel per destination on this date
     let hotelQuery = supabase
         .from( 'hotel_price_cache' )
-        .select( 'price_per_night, fetched_at, hotels!inner ( id, name, star_rating, destination_id )' )
+        .select( 'price_per_night, fetched_at , check_in_date , hotels!inner ( id, name, star_rating, destination_id , tj_hotel_id )' )
         .eq( 'check_in_date', date );
 
     if ( parsedStars ) hotelQuery = hotelQuery.gte( 'hotels.star_rating', parsedStars );
 
-    const { data: hotelPrices, error: hotelErr } = await hotelQuery;
+    const { data: dbHotelPrices, error: hotelErr } = await hotelQuery;
     if ( hotelErr ) throw hotelErr;
 
+    const checkInDate = date;
+    const checkOutDate = new Date( `${checkInDate}T12:00:00` );
+    checkOutDate.setDate( checkOutDate.getDate() + parsedNights );
+    const checkOut = checkOutDate.toISOString().split( 'T' )[0];
+
+    const hotelPrices = dbHotelPrices.map( h => ( {
+        ...h,
+        check_out_date: checkOut
+    } ) );
     // Keep cheapest hotel per destination
     const destIdSet = new Set( destIds );
     const cheapestByDestId = {};
@@ -97,6 +108,9 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
                 star_rating: hotel.star_rating,
                 price_per_night: row.price_per_night,
                 fetched_at: row.fetched_at,
+                tj_hotel_id : hotel.tj_hotel_id,
+                check_in_date : row.check_in_date,
+                check_out_date : row.check_out_date 
             };
         }
     }
@@ -117,6 +131,13 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
             calculatePerPerson( flight.price, hotel.price_per_night, parsedNights, actualRooms, parsedAdults, parsedChildren ),
         );
 
+        const departedAt = flight.departure_time;
+        const duration = flight.duration_minutes;
+        const isNextDay = isNextDayArrival( departedAt, duration );
+        let newCheckinDate;
+        if ( isNextDay ) {
+            newCheckinDate = nextDate( checkInDate );
+        } 
         results.push( {
             destination: {
                 id: dest.id,
@@ -138,12 +159,21 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
                 name: hotel.name,
                 star_rating: hotel.star_rating,
                 price_per_night: hotel.price_per_night,
+                tj_hotel_id : hotel.tj_hotel_id,
+                check_in_date: isNextDay ? newCheckinDate : hotel.check_in_date,
+                check_out_date : hotel.check_out_date 
             },
             pricing: {
                 flight_total: flightTotal,
                 hotel_total: hotelTotal,
                 total: flightTotal + hotelTotal,
                 per_person: perPerson,
+            },
+            adjustment_info: {
+                hotel_check_in_shifted: isNextDay,
+                hotel_booking_note: isNextDay ? 'Hotel will be booked from the next day (arrival date) due to overnight flight.' : null,
+                old_checkin_date : hotel.check_in_date, 
+                new_check_in_date : newCheckinDate ?? null 
             },
             stale: isStale( flight.fetched_at ) || isStale( hotel.fetched_at ),
         } );
