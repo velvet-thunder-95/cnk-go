@@ -10,18 +10,17 @@ const CRON_LOG_RETENTION_DAYS = Number( process.env.CLEANUP_CRON_LOG_RETENTION_D
 const ts = () => new Date().toISOString().slice( 11, 19 );
 
 /**
- * Returns the current calendar date as a YYYY-MM-DD string,
- * adjusted for the local system timezone offset so that "today"
- * aligns with the local business day (important for IST +05:30).
+ * Returns a YYYY-MM-DD string offset by the given number of days,
+ * explicitly using UTC to keep things uniform and consistent.
  *
+ * @param {number} daysOffset - Days to add/subtract (e.g., -6 for 6 days ago)
  * @returns {string}  e.g. '2026-06-07'
  */
-function getLocalTodayString() {
-    const now    = new Date();
-    const offset = now.getTimezoneOffset(); // minutes behind UTC (negative for IST)
-    const local  = new Date( now.getTime() - offset * 60 * 1000 );
+function getUTCDateString( daysOffset = 0 ) {
+    const d = new Date();
+    d.setUTCDate( d.getUTCDate() + daysOffset );
 
-    return local.toISOString().slice( 0, 10 );
+    return d.toISOString().slice( 0, 10 );
 }
 
 /**
@@ -60,20 +59,16 @@ async function purgeTable( table, dateColumn, cutoff ) {
  */
 export async function runCleanupCron() {
     const startedAt = new Date().toISOString();
-    const today     = getLocalTodayString();
+    const today     = getUTCDateString( 0 );
 
     // Cutoff for operational log retention (YYYY-MM-DD)
-    const retentionDate = new Date();
-    retentionDate.setUTCDate( retentionDate.getUTCDate() - CRON_LOG_RETENTION_DAYS );
-    const retentionCutoff = retentionDate.toISOString().slice( 0, 10 );
+    const retentionCutoff = getUTCDateString( -CRON_LOG_RETENTION_DAYS );
 
     // weekly_price_cache rows represent full Monday-anchored weeks.
     // A week is fully stale only once week_start_date + 7 <= today,
     // i.e. week_start_date < today - 6. Using today directly would
     // delete the current ongoing week.
-    const weeklyDate = new Date();
-    weeklyDate.setUTCDate( weeklyDate.getUTCDate() - 6 );
-    const weeklyCutoff = weeklyDate.toISOString().slice( 0, 10 );
+    const weeklyCutoff = getUTCDateString( -6 );
 
     console.log( `[cleanup-cron][${ts()}] STARTING — purging cache dates < ${today}, weekly weeks ending before ${weeklyCutoff}, cron logs older than ${retentionCutoff}` );
 
