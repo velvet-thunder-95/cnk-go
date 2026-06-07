@@ -1,5 +1,6 @@
 import { AuthError } from '@supabase/supabase-js';
 import response from '../utils/response.js';
+import logger from '../logger.js';
 
 /**
  * Wraps an async route handler and forwards any thrown error to next().
@@ -19,7 +20,7 @@ export const asyncHandler = fn => ( req, res, next ) =>
  * @param {Function} _next
  */
 export function globalErrorHandler( err, _req, res, _next ) {
-    console.error( '[error]', err );
+    logger.error( { err }, 'Unhandled exception' );
 
     // Supabase auth errors
     if ( err instanceof AuthError ) {

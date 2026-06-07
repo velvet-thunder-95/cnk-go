@@ -4,6 +4,7 @@ import response from '../utils/response.js';
 import * as hotelClient from '../clients/tripjack/hotelClient.js';
 import { generateCorrelationId } from '../utils/priceCalculator.js';
 import { destinations } from '../utils/internationalDestinations.js';
+import logger from '../logger.js';
 
 // ─── POST /api/hotels/list ────────────────────────────────────────────────────
 // H1 — Hotel Listing. Returns available hotels with indicative prices.
@@ -61,7 +62,7 @@ export const listHotels = asyncHandler( async ( req, res ) => {
                     .from( 'hotel_price_cache' )
                     .upsert( rows, { onConflict: 'hotel_id,check_in_date' } );
 
-                if ( upsertErr ) console.error( '[hotels/list] cache upsert error:', upsertErr.message );
+                if ( upsertErr ) logger.error( { err: upsertErr }, '[hotels/list] cache upsert error' );
             }
         }
     }

@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import response from '../utils/response.js';
 import * as flightClient from '../clients/tripjack/flightClient.js';
 import { TOP_N_FLIGHTS } from '../utils/constants.js';
+import logger from '../logger.js';
 
 // ─── POST /api/flights/search ─────────────────────────────────────────────────
 // Calls TripJack, parses COMBO[], de-dupes by airline, caches top N, returns results.
@@ -95,7 +96,7 @@ export const searchFlights = asyncHandler( async ( req, res ) => {
             .from( 'flight_price_cache' )
             .upsert( rows, { onConflict: 'origin_iata,destination_iata,departure_date,rank' } );
 
-        if ( upsertErr ) console.error( '[flights] cache upsert error:', upsertErr.message );
+        if ( upsertErr ) logger.error( { err: upsertErr }, '[flights] cache upsert error' );
     }
 
     // Prune stale higher ranks when fewer fresh options are returned for this route-date.
@@ -108,7 +109,7 @@ export const searchFlights = asyncHandler( async ( req, res ) => {
             .eq( 'departure_date', departDate )
             .gt( 'rank', sorted.length );
 
-        if ( deleteErr ) console.error( '[flights] stale rank prune error:', deleteErr.message );
+        if ( deleteErr ) logger.error( { err: deleteErr }, '[flights] stale rank prune error' );
     }
 
     const message = shouldCache

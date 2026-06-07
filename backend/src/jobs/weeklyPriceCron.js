@@ -7,6 +7,7 @@ import {
     ORIGIN_IATA_CODES,
 } from '../utils/constants.js';
 import { getCronDates, getWeekStart } from '../utils/dateHelpers.js';
+import logger from '../logger.js';
 
 /** Returns current time as HH:MM:SS for log prefixes. */
 const ts = () => new Date().toISOString().slice( 11, 19 );
@@ -126,7 +127,7 @@ export async function runWeeklyAggregation() {
     if ( cronRunErr ) throw new Error( `Failed to insert cron_run: ${cronRunErr.message}` );
 
     const cronRunId = cronRun.id;
-    console.log( `[weeklyAggregation][${ts()}] Started run #${cronRunId}` );
+    logger.info( { cronRunId }, '[weeklyAggregation] Started run' );
 
     try {
         // Use the same tiered date list as the flight and hotel crons — this ensures
@@ -139,7 +140,7 @@ export async function runWeeklyAggregation() {
         const allHotelIds             = [ ...destinationIdToHotelIds.values() ].flat();
 
         if ( allHotelIds.length === 0 ) {
-            console.warn( '[weeklyAggregation] No active hotels found — skipping aggregation' );
+            logger.warn( '[weeklyAggregation] No active hotels found — skipping aggregation' );
             await supabase.from( 'cron_runs' ).update( {
                 completed_at  : new Date().toISOString(),
                 total_jobs    : 0,
@@ -150,7 +151,7 @@ export async function runWeeklyAggregation() {
             return;
         }
 
-        console.log( `[weeklyAggregation][${ts()}] ${dates.length} dates, ${allHotelIds.length} hotels, ${destinationIds.length} destinations` );
+        logger.info( { datesCount: dates.length, hotelsCount: allHotelIds.length, destinationsCount: destinationIds.length }, '[weeklyAggregation] Found records' );
 
         const flightPriceMap = await fetchFlightPriceMap( dates );
         const hotelPriceMap  = await fetchHotelPriceMap( allHotelIds, dates );
@@ -247,9 +248,9 @@ export async function runWeeklyAggregation() {
             } )
             .eq( 'id', cronRunId );
 
-        if ( updateErr ) console.error( `[weeklyAggregation] Failed to update cron_run: ${updateErr.message}` );
+        if ( updateErr ) logger.error( { err: updateErr }, '[weeklyAggregation] Failed to update cron_run' );
 
-        console.log( `[weeklyAggregation][${ts()}] Done — ${rowsToUpsert.length} weekly rows upserted` );
+        logger.info( { upsertedRows: rowsToUpsert.length }, '[weeklyAggregation] Done' );
 
     } catch ( err ) {
         await supabase.from( 'cron_runs' ).update( {

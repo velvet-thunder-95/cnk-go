@@ -3,6 +3,7 @@ import supabase from '../config/supabaseClient.js';
 import { listHotels } from '../clients/tripjack/hotelClient.js';
 import { CACHE_DAYS_TIER1, CACHE_DAYS_TIER2, TIER2_STEP } from '../utils/constants.js';
 import { getCronDates } from '../utils/dateHelpers.js';
+import logger from '../logger.js';
 
 /** Returns current time as HH:MM:SS for log prefixes. */
 const ts = () => new Date().toISOString().slice( 11, 19 );
@@ -82,10 +83,10 @@ async function logJobFailure( cronRunId, checkInDate, batchSize, error ) {
             } );
 
         if ( insertError ) {
-            console.error( `[hotel-cron] Failed to log failure to DB: ${insertError.message}` );
+            logger.error( { err: insertError }, '[hotel-cron] Failed to log failure to DB' );
         }
     } catch ( loggingError ) {
-        console.error( `[hotel-cron] Exception while logging failure: ${loggingError.message}` );
+        logger.error( { err: loggingError }, '[hotel-cron] Exception while logging failure' );
     }
 }
 
@@ -182,14 +183,16 @@ async function processHotelBatch(
         }
 
         jobCounts.successCount++;
-        console.log(
-            `[hotel-cron][${ts()}] ✓ upserted ${cacheRows.length}, deleted ${unavailableDbIds.length} unavailable`
+        logger.info(
+            { upserted: cacheRows.length, deleted: unavailableDbIds.length },
+            '[hotel-cron] Batch processed successfully'
         );
     } catch ( error ) {
         jobCounts.failCount++;
         await logJobFailure( cronRunId, checkInDate, tjHotelIdBatch.length, error );
-        console.error(
-            `[hotel-cron][${checkInDate}] ✗ ${classifyError( error )} — ${error.message?.slice( 0, 120 )}`
+        logger.error(
+            { err: error, checkInDate, errorType: classifyError( error ) },
+            '[hotel-cron] Batch processing failed'
         );
     }
 }
@@ -209,8 +212,9 @@ async function processHotelBatch(
 export async function runHotelCron() {
     const startedAt = new Date().toISOString();
 
-    console.log(
-        `[hotel-cron] Starting — workers=${MAX_CONCURRENT_HOTEL_WORKERS}, batchSize=${HOTEL_BATCH_SIZE}`
+    logger.info(
+        { workers: MAX_CONCURRENT_HOTEL_WORKERS, batchSize: HOTEL_BATCH_SIZE },
+        '[hotel-cron] Starting'
     );
 
     // ── Create a cron_runs record so failures can reference it ───────────────
@@ -230,10 +234,9 @@ export async function runHotelCron() {
     const checkInDates = getCronDates( CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 );
     const { tjIdToDbId, hotelIdBatches } = await fetchActiveHotels();
 
-    console.log(
-        `[hotel-cron] Run #${cronRunId} — ${checkInDates.length} dates to fetch` +
-        ` (tier1=${CACHE_DAYS_TIER1}, tier2 step=${TIER2_STEP}), ${hotelIdBatches.length} batch(es), ` +
-        `${tjIdToDbId.size} active hotels`
+    logger.info(
+        { cronRunId, datesCount: checkInDates.length, batchesCount: hotelIdBatches.length, activeHotels: tjIdToDbId.size },
+        '[hotel-cron] Run metrics'
     );
 
     // ── Enqueue one job per (date × hotel-batch) ─────────────────────────────
@@ -276,11 +279,11 @@ export async function runHotelCron() {
         .eq( 'id', cronRunId );
 
     if ( updateError ) {
-        console.error( `[hotel-cron] Failed to update cron_runs record: ${updateError.message}` );
+        logger.error( { err: updateError }, '[hotel-cron] Failed to update cron_runs record' );
     }
 
-    console.log(
-        `[hotel-cron] Completed run #${cronRunId}: ` +
-        `${jobCounts.successCount}/${totalJobCount} succeeded, ${jobCounts.failCount} failed`
+    logger.info(
+        { cronRunId, successCount: jobCounts.successCount, totalJobCount, failCount: jobCounts.failCount },
+        '[hotel-cron] Completed run'
     );
 }
