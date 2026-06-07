@@ -27,7 +27,28 @@ app.use( cors( {
 
 // ─── Request parsing & logging ────────────────────────────────────────────────
 app.use( express.json() );
-app.use( pinoHttp( { logger } ) );
+app.use( pinoHttp( {
+    logger,
+
+    customSuccessMessage: ( req, res ) =>
+        `${req.method} ${req.url} ${res.statusCode}`,
+
+    customErrorMessage: ( req, res ) =>
+        `${req.method} ${req.url} ${res.statusCode}`,
+
+    // Smart log levels based on status code
+    customLogLevel: ( req, res, err ) => {
+        if ( res.statusCode >= 500 || err ) return 'error';
+        if ( res.statusCode >= 400 ) return 'warn';
+
+        return 'info';
+    },
+
+    serializers: {
+        req: () => undefined,
+        res: () => undefined,
+    },
+} ) );
 app.use( cookieParser() );
 
 // ─── Health / root ────────────────────────────────────────────────────────────
