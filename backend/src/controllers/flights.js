@@ -57,6 +57,7 @@ export const searchFlights = asyncHandler( async ( req, res ) => {
                 price_id: priceEntry.id,          // lowercase .id — critical
                 airline_code: airlineCode,
                 airline_name: combo.sI[0]?.fD?.aI?.name,
+                flight_number: combo.sI[0]?.fD?.fN,
                 duration_minutes: combo.sI[0]?.duration,
                 stops: combo.sI[0]?.stops ?? 0,
                 departure_time: combo.sI[0]?.dt?.slice( 11, 16 ),

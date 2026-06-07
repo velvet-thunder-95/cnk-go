@@ -1,3 +1,5 @@
+import { isValidDate } from './helpers.js';
+
 /**
  * Validates the format of an email address
  * @param {string} email - The email address to validate
@@ -13,7 +15,7 @@ export function validateEmail( email ) {
 }
 
 /**
- * Validates date of birth — must be a valid date and not in the future
+ * Validates date of birth — must be a strictly valid YYYY-MM-DD date and not in the future
  * @param {string} dob - Date of birth in YYYY-MM-DD format
  * @returns {boolean} True if valid, false otherwise
  * @example
@@ -21,14 +23,10 @@ export function validateEmail( email ) {
  * validateDateOfBirth('2099-01-01') // false
  */
 export function validateDateOfBirth( dob ) {
-    if ( !dob ) return false;
+    if ( !dob || !isValidDate( dob ) ) return false;
 
     const date = new Date( dob );
     const now = new Date();
-
-    if ( isNaN( date.getTime() ) ) {
-        return false;
-    }
 
     if ( date.getTime() > now.getTime() ) {
         return false;

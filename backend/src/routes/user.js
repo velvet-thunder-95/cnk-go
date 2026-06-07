@@ -5,11 +5,11 @@ import { userAuthMiddleware } from "../middleware/userAuthMiddleware.js";
 const router = Router();
 
 /**
- * @route POST /update-profile
+ * @route PATCH /update-profile
  * @access Private
  * @description Updates the user's profile information such as first name, last name etc.
  */
-router.post( '/update-profile', userAuthMiddleware, updateProfile );
+router.patch( '/update-profile', userAuthMiddleware, updateProfile );
 
 /**
  * @route GET /get-profile
@@ -19,10 +19,10 @@ router.post( '/update-profile', userAuthMiddleware, updateProfile );
 router.get( '/get-profile', userAuthMiddleware, getProfile );
 
 /**
- * @route POST /delete-account
+ * @route DELETE /delete-account
  * @access Private
  * @description Deletes the authenticated user's account permanently
  */
-router.post( '/delete-profile', userAuthMiddleware, deleteProfile );
+router.delete( '/delete-account', userAuthMiddleware, deleteProfile );
 
 export default router;

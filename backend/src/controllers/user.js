@@ -5,7 +5,7 @@ import response from "../utils/response.js";
 
 /**
  * Get profile controller
- * @route GET /api/auth/profile
+ * @route GET /api/user/get-profile
  * @access Private
  * @description Retrieves authenticated user's profile details from user_metadata
  * @param {Object} req - Express request object
@@ -24,7 +24,7 @@ export const getProfile = asyncHandler ( async( req, res ) => {
 
 /**
  * Update profile controller
- * @route PATCH /api/auth/update-profile
+ * @route PATCH /api/user/update-profile
  * @access Private
  * @description Updates authenticated user's profile details in user_metadata
  * @param {Object} req - Express request object
@@ -63,7 +63,7 @@ export const updateProfile = asyncHandler ( async( req, res ) => {
 
 /**
  * Delete user account controller
- * @route DELETE /api/auth/delete-account
+ * @route DELETE /api/user/delete-account
  * @access Private
  * @description Verifies user's password before permanently deleting their account from Supabase
  * @param {Object} req - Express request object
