@@ -13,6 +13,8 @@
     "cron:flights:now": "node scripts/runFlightCron.js --now",
     "cron:weekly-agg": "node scripts/runWeeklyAggregationCron.js",
     "cron:weekly-agg:now": "node scripts/runWeeklyAggregationCron.js --now",
+    "cron:cleanup": "node scripts/runCleanupCron.js",
+    "cron:cleanup:now": "node scripts/runCleanupCron.js --now",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

@@ -1,0 +1,42 @@
+name: Data Cleanup Cron
+
+on:
+  schedule:
+    # Runs at 00:05 AM UTC daily — before flight (2:00 AM) and hotel crons so stale
+    # data is removed before fresh data is inserted for the day.
+    - cron: '5 0 * * *'
+  workflow_dispatch: # allows manual trigger from GitHub Actions UI
+
+concurrency:
+  group: cleanup-cron-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-cleanup-cron:
+    name: Purge stale cache & old cron logs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # pure DB deletes — completes in seconds; 10 min is a safe ceiling
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run cleanup cron
+        working-directory: backend
+        run: npm run cron:cleanup:now
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          CLEANUP_CRON_LOG_RETENTION_DAYS: ${{ vars.CLEANUP_CRON_LOG_RETENTION_DAYS || '30' }}
+          NODE_ENV: production
