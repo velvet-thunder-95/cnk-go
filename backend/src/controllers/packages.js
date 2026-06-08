@@ -2,10 +2,8 @@ import supabase from '../config/supabaseClient.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import response from '../utils/response.js';
 import { calculatePerPerson, getPriceTier, minRooms } from '../utils/priceCalculator.js';
-import { isStale } from '../utils/dateHelpers.js';
+import { addDays, extractDate, isStale } from '../utils/dateHelpers.js';
 import { CHILD_FARE_RATIO } from '../utils/constants.js';
-import { isNextDayArrival } from '../utils/nextDayArrivalHelper.js';
-import { nextDate } from '../utils/nextDateCalculatorHelper.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,7 +85,7 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
 
     const checkInDate = date;
     const checkOutDate = new Date( `${checkInDate}T12:00:00` );
-    checkOutDate.setDate( checkOutDate.getDate() + parsedNights );
+    checkOutDate.setUTCDate( checkOutDate.getUTCDate() + parsedNights );
     const checkOut = checkOutDate.toISOString().split( 'T' )[0];
 
     const hotelPrices = dbHotelPrices.map( h => ( {
@@ -130,14 +128,12 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
         const perPerson = Math.round(
             calculatePerPerson( flight.price, hotel.price_per_night, parsedNights, actualRooms, parsedAdults, parsedChildren ),
         );
-
-        const departedAt = flight.departure_time;
-        const duration = flight.duration_minutes;
-        const isNextDay = isNextDayArrival( departedAt, duration );
+        const arrivalDate = flight.arrival_time ? extractDate( flight.arrival_time ) : date;
+        const isNextDay = arrivalDate === hotel.check_in_date ? false : true;
         let newCheckinDate;
         if ( isNextDay ) {
-            newCheckinDate = nextDate( checkInDate );
-        } 
+            newCheckinDate = addDays( hotel.check_in_date, 1 );
+        }
         results.push( {
             destination: {
                 id: dest.id,
@@ -160,7 +156,7 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
                 star_rating: hotel.star_rating,
                 price_per_night: hotel.price_per_night,
                 tj_hotel_id : hotel.tj_hotel_id,
-                check_in_date: isNextDay ? newCheckinDate : hotel.check_in_date,
+                check_in_date: hotel.check_in_date,
                 check_out_date : hotel.check_out_date 
             },
             pricing: {
@@ -171,7 +167,6 @@ export const searchDestinations = asyncHandler( async ( req, res ) => {
             },
             adjustment_info: {
                 hotel_check_in_shifted: isNextDay,
-                hotel_booking_note: isNextDay ? 'Hotel will be booked from the next day (arrival date) due to overnight flight.' : null,
                 old_checkin_date : hotel.check_in_date, 
                 new_check_in_date : newCheckinDate ?? null 
             },

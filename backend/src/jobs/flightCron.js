@@ -1,7 +1,7 @@
 import PQueue from 'p-queue';
 import supabase from '../config/supabaseClient.js';
 import { searchFlights } from '../clients/tripjack/flightClient.js';
-import { getCronDates, getReturnDate, extractTime } from '../utils/dateHelpers.js';
+import { getCronDates, getReturnDate } from '../utils/dateHelpers.js';
 import {
     ORIGIN_IATA_CODES,
     DESTINATION_IATA_CODES,
@@ -172,8 +172,8 @@ async function processFlightJob( { origin, dest, date } ) {
             airline_name: firstSeg.fD?.aI?.name || '',
             duration_minutes: totalDuration || null,
             stops: totalStops,
-            departure_time: extractTime( firstSeg.dt ),
-            arrival_time: extractTime( lastSeg.at ),
+            departure_time: firstSeg.dt,
+            arrival_time: lastSeg.at,
         } );
     }
 
