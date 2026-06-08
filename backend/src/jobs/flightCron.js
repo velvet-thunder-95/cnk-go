@@ -15,9 +15,6 @@ const MAX_WORKERS = Number( process.env.MAX_CONCURRENT_FLIGHT_WORKERS ) || 3;
 // Max requests per second sent to TripJack (sandbox: 2/s, production: raise to 5+)
 const REQUESTS_PER_SECOND = Number( process.env.FLIGHT_REQUESTS_PER_SECOND ) || 2;
 
-/** Returns current time as HH:MM:SS for log prefixes. */
-const ts = () => new Date().toISOString().slice( 11, 19 );
-
 /**
  * Runs the full flight price cron job.
  * Fetches round-trip prices for all route-date combos, picks top 3 cheapest

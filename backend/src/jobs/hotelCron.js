@@ -1,12 +1,9 @@
 import PQueue from 'p-queue';
 import supabase from '../config/supabaseClient.js';
 import { listHotels } from '../clients/tripjack/hotelClient.js';
-import { CACHE_DAYS_TIER1, CACHE_DAYS_TIER2, TIER2_STEP } from '../utils/constants.js';
+import { CACHE_DAYS_TIER1, CACHE_DAYS_TIER2 } from '../utils/constants.js';
 import { getCronDates } from '../utils/dateHelpers.js';
 import logger from '../logger.js';
-
-/** Returns current time as HH:MM:SS for log prefixes. */
-const ts = () => new Date().toISOString().slice( 11, 19 );
 
 const MAX_CONCURRENT_HOTEL_WORKERS =
   parseInt( process.env.MAX_CONCURRENT_HOTEL_WORKERS ) || 5;

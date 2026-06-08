@@ -9,9 +9,6 @@ import {
 import { getCronDates, getWeekStart } from '../utils/dateHelpers.js';
 import logger from '../logger.js';
 
-/** Returns current time as HH:MM:SS for log prefixes. */
-const ts = () => new Date().toISOString().slice( 11, 19 );
-
 /**
  * Fetches a map of destination IATA codes → destination IDs from the DB.
  * @returns {Promise<Map<string, number>>}
