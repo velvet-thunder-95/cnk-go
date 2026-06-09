@@ -2,7 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
+import logger from './logger.js';
 import cookieParser from 'cookie-parser';
 import supabase from './config/supabaseClient.js';
 import { globalErrorHandler } from './middleware/errorHandler.js';
@@ -26,7 +27,28 @@ app.use( cors( {
 
 // ─── Request parsing & logging ────────────────────────────────────────────────
 app.use( express.json() );
-app.use( morgan( process.env.NODE_ENV === 'production' ? 'combined' : 'dev' ) );
+app.use( pinoHttp( {
+    logger,
+
+    customSuccessMessage: ( req, res ) =>
+        `${req.method} ${req.url} ${res.statusCode}`,
+
+    customErrorMessage: ( req, res ) =>
+        `${req.method} ${req.url} ${res.statusCode}`,
+
+    // Smart log levels based on status code
+    customLogLevel: ( req, res, err ) => {
+        if ( res.statusCode >= 500 || err ) return 'error';
+        if ( res.statusCode >= 400 ) return 'warn';
+
+        return 'info';
+    },
+
+    serializers: {
+        req: () => undefined,
+        res: () => undefined,
+    },
+} ) );
 app.use( cookieParser() );
 
 // ─── Health / root ────────────────────────────────────────────────────────────
@@ -64,19 +86,19 @@ const PORT = process.env.PORT || 4000;
 
 async function start() {
     try {
-        console.log( 'Connecting to database...' );
+        logger.info( 'Connecting to database...' );
         // Ping a real table to confirm DB connectivity
         const { error } = await supabase.from( 'origin_cities' ).select( 'id' ).limit( 1 );
         if ( error ) throw error;
-        console.log( 'Database connected.\n' );
+        logger.info( 'Database connected.\n' );
     } catch ( err ) {
-        console.error( 'Failed to connect to database:', err.message );
+        logger.error( { err }, 'Failed to connect to database' );
         process.exit( 1 );
     }
 
     app.listen( PORT, () => {
-        console.log( `[server] Running on port ${PORT} (${process.env.NODE_ENV || 'development'})` );
-        console.log( `Full url: http://localhost:${PORT}` );
+        logger.info( `[server] Running on port ${PORT} (${process.env.NODE_ENV || 'development'})` );
+        logger.info( `Full url: http://localhost:${PORT}` );
     } );
 }
 

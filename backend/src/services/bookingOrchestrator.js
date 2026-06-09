@@ -3,6 +3,7 @@ import * as flightClient from '../clients/tripjack/flightClient.js';
 import * as hotelClient from '../clients/tripjack/hotelClient.js';
 import { generateCorrelationId } from '../utils/priceCalculator.js';
 import { wait } from '../utils/helpers.js';
+import logger from '../logger.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -367,7 +368,7 @@ async function updateBooking( bookingId, fields ) {
         .eq( 'id', bookingId );
 
     if ( error ) {
-        console.error( `[orchestrator] DB update failed for booking #${bookingId}:`, error.message );
+        logger.error( { err: error, bookingId }, '[orchestrator] DB update failed for booking' );
     }
 }
 
@@ -390,9 +391,9 @@ async function getHotelBookingDetailsSafely( bookingId, tjHotelBookingId ) {
                 return latestDetails;
             }
         } catch ( err ) {
-            console.error(
-                `[orchestrator] Hotel booking-details failed for #${bookingId} / ${tjHotelBookingId}:`,
-                err.response?.data?.errors?.[ 0 ]?.message ?? err.message,
+            logger.error(
+                { err, bookingId, tjHotelBookingId },
+                '[orchestrator] Hotel booking-details failed'
             );
         }
 
@@ -415,9 +416,9 @@ async function getFlightBookingDetailsSafely( bookingId, flightBookingId ) {
     try {
         return await flightClient.getFlightBookingDetails( flightBookingId );
     } catch ( err ) {
-        console.error(
-            `[orchestrator] Flight booking-details failed for #${bookingId} / ${flightBookingId}:`,
-            err.response?.data?.errors?.[ 0 ]?.message ?? err.message,
+        logger.error(
+            { err, bookingId, flightBookingId },
+            '[orchestrator] Flight booking-details failed'
         );
 
         return null;
@@ -563,10 +564,9 @@ export async function reviewPackageBooking( { booking, hotelOptionId, flightAirl
         return { success: false, error: 'No flights are available for this route and date' };
     }
 
-    console.log(
-        `[orchestrator] Flight selected for #${booking.id}: ` +
-        `${flightOption.airlineCode} ${flightOption.flightNumber ?? ''} ` +
-        `at ${flightOption.departureTime} | availability=${availability}`,
+    logger.info(
+        { bookingId: booking.id, airlineCode: flightOption.airlineCode, flightNumber: flightOption.flightNumber, departureTime: flightOption.departureTime, availability },
+        '[orchestrator] Flight selected'
     );
 
     // ── F3: Review flight ─────────────────────────────────────────────────────
@@ -725,7 +725,7 @@ export async function orchestrateBooking( { booking, passengers } ) {
         );
     } catch ( err ) {
         const msg = err.response?.data?.errors?.[ 0 ]?.message ?? err.message ?? 'Hotel booking failed';
-        console.error( `[orchestrator] Hotel booking threw for #${bookingId}:`, msg );
+        logger.error( { err, bookingId, msg }, '[orchestrator] Hotel booking threw' );
         await updateBooking( bookingId, { status: 'hotel_failed', hotel_status: 'FAILED' } );
         
         return { 
@@ -762,7 +762,7 @@ export async function orchestrateBooking( { booking, passengers } ) {
         hotel_booked_at:         new Date().toISOString(),
     } );
 
-    console.log( `[orchestrator] Hotel booked for #${bookingId} → TJ ID: ${tjHotelBookingId}` );
+    logger.info( { bookingId, tjHotelBookingId }, '[orchestrator] Hotel booked' );
 
     // ── Step 2: Book Flight ───────────────────────────────────────────────────
     const flightTravellers = passengers.map( toFlightTraveller );
@@ -777,7 +777,7 @@ export async function orchestrateBooking( { booking, passengers } ) {
         );
     } catch ( err ) {
         const msg = err.response?.data?.errors?.[ 0 ]?.message ?? err.message ?? 'Flight booking failed';
-        console.error( `[orchestrator] Flight booking threw for #${bookingId}:`, msg );
+        logger.error( { err, bookingId, msg }, '[orchestrator] Flight booking threw' );
         const cancelResult = await _cancelHotelSafely( bookingId, tjHotelBookingId );
         
         return { 
@@ -794,7 +794,7 @@ export async function orchestrateBooking( { booking, passengers } ) {
 
     if ( flightResult?.status && !flightResult.status.success ) {
         const msg = flightResult.errors?.[ 0 ]?.message ?? 'Flight booking rejected by provider';
-        console.error( `[orchestrator] Flight rejected for #${bookingId}:`, msg );
+        logger.error( { bookingId, msg }, '[orchestrator] Flight rejected' );
         const cancelResult = await _cancelHotelSafely( bookingId, tjHotelBookingId );
         
         return { 
@@ -825,7 +825,7 @@ export async function orchestrateBooking( { booking, passengers } ) {
         total_amount:      hotelAmount + flightAmount,
     } );
 
-    console.log( `[orchestrator] Booking #${bookingId} fully confirmed` );
+    logger.info( { bookingId }, '[orchestrator] Booking fully confirmed' );
 
     const { data: finalBooking } = await supabase
         .from( 'bookings' )
@@ -862,7 +862,7 @@ async function _cancelHotelSafely( bookingId, tjHotelBookingId ) {
             hotel_status:            'CANCELLED',
             flight_status:           'FAILED',
         } );
-        console.log( `[orchestrator] Hotel ${tjHotelBookingId} cancelled after flight failure` );
+        logger.info( { tjHotelBookingId }, '[orchestrator] Hotel cancelled after flight failure' );
         
         return { success: true };
     } catch ( cancelErr ) {
@@ -871,9 +871,9 @@ async function _cancelHotelSafely( bookingId, tjHotelBookingId ) {
             tj_hotel_booking_status: 'CANCEL_FAILED',
             flight_status:           'FAILED',
         } );
-        console.error(
-            `[orchestrator] Hotel cancel FAILED for TJ ID ${tjHotelBookingId} (booking #${bookingId}):`,
-            cancelErr.message,
+        logger.error(
+            { err: cancelErr, bookingId, tjHotelBookingId },
+            '[orchestrator] Hotel cancel FAILED for TJ ID'
         );
         
         return { success: false, error: cancelErr.message };
