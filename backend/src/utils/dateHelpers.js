@@ -77,10 +77,17 @@ export function getCronDates( tier1Days, tier2Days ) {
 }
 
 /**
- * Extract HH:MM from an ISO datetime string (TripJack dt/at fields).
- * @param {string} isoString  e.g. '2026-07-15T06:30:00'
- * @returns {string}  e.g. '06:30'
+ * Extract the date part from a datetime string or Date object.
+ * For strings, slices directly to avoid timezone-shift bugs — no UTC conversion.
+ * For Date objects, uses toISOString() (assumes UTC-normalized Date).
+ * @param {string|Date} dateTime  e.g. "2026-06-11 03:30:00" or "2026-06-11T03:30:00"
+ * @returns {string}  YYYY-MM-DD  e.g. "2026-06-11"
  */
-export function extractTime( isoString ) {
-    return isoString?.slice( 11, 16 ) ?? '';
+export function extractDate( dateTime ) {
+    if ( typeof dateTime === 'string' ) {
+        const match = dateTime.match( /^\d{4}-\d{2}-\d{2}/ );
+        if ( match ) return match[0]; 
+    }
+
+    return new Date( dateTime ).toISOString().slice( 0, 10 );
 }
