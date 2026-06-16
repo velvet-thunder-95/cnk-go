@@ -24,3 +24,6 @@ pnpm-lock.yaml
 
 # Ignore markdown files 
 *.md
+
+# Ignore ecosystem config file
+ecosystem.config.js
