@@ -1,0 +1,36 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/cnk-go
+
+            # 1. Pull the latest code from GitHub
+            git pull origin main
+
+            # 2. Install any new Frontend dependencies and Build
+            npm install
+            npm run build
+
+            # 3. Install any new Backend dependencies
+            cd backend
+            npm install
+            cd ..
+
+            # 4. Restart all apps and crons gracefully
+            pm2 restart all
