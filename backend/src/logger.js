@@ -44,13 +44,6 @@ const logger = pino( {
     // ─── ISO 8601 timestamp ──────────────────────────────────────────
     timestamp: pino.stdTimeFunctions.isoTime,
 
-    // ─── String label ("info") instead of numeric level (30) ─────────
-    formatters: {
-        level( label ) {
-            return { level: label };
-        },
-    },
-
     // ─── Human-readable req/res — only the fields that matter ────────
     serializers: {
         err: pino.stdSerializers.err, // full stack trace, message, type
