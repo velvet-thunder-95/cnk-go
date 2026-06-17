@@ -19,6 +19,8 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@logtail/node": "^0.5.8",
+    "@logtail/pino": "^0.5.8",
     "@supabase/supabase-js": "^2.105.4",
     "axios": "^1.7.9",
     "axios-retry": "^4.5.0",

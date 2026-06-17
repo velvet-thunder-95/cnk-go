@@ -2,6 +2,35 @@ import pino from 'pino';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+// ─── Transports (Dev vs PM2 vs Better Stack) ─────────────────────
+const targets = [];
+
+if ( isDev ) {
+    targets.push( {
+        target: 'pino-pretty',
+        options: {
+            colorize: true,
+            ignore: 'pid,hostname,app,env',
+            translateTime: 'SYS:HH:MM:ss',
+            singleLine: false,
+        },
+    } );
+} else {
+    // Always log raw JSON to stdout for PM2
+    targets.push( {
+        target: 'pino/file',
+        options: { destination: 1 },
+    } );
+
+    // If token exists, ALSO send to Better Stack
+    if ( process.env.BETTERSTACK_SOURCE_TOKEN ) {
+        targets.push( {
+            target: '@logtail/pino',
+            options: { sourceToken: process.env.BETTERSTACK_SOURCE_TOKEN },
+        } );
+    }
+}
+
 const logger = pino( {
     // ─── Core ────────────────────────────────────────────────────────
     level: process.env.LOG_LEVEL || ( isDev ? 'debug' : 'info' ),
@@ -38,23 +67,11 @@ const logger = pino( {
         res( res ) {
             return {
                 statusCode: res.statusCode,
-                // responseTime is appended automatically by pino-http
             };
         },
     },
 
-    // ─── Dev only: pretty-print (pino-pretty is a devDependency) ─────
-    ...( isDev && {
-        transport: {
-            target: 'pino-pretty',
-            options: {
-                colorize: true,
-                ignore: 'pid,hostname,app,env', // clean in dev, useful in prod JSON
-                translateTime: 'SYS:HH:MM:ss',
-                singleLine: false,
-            },
-        },
-    } ),
+    transport: { targets },
 } );
 
 export default logger;
