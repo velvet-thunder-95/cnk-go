@@ -64,10 +64,14 @@ export async function runFlightCron() {
     let failCount = 0;
     let skipCount = 0;
 
+    // Handle fractional rates (e.g., 0.5 requests/sec = 1 request every 2000ms)
+    const cap = Math.max( 1, Math.floor( REQUESTS_PER_SECOND ) );
+    const intervalMs = Math.round( 1000 * ( cap / REQUESTS_PER_SECOND ) );
+
     const queue = new PQueue( {
         concurrency: MAX_WORKERS,
-        interval: 1000,                         // rolling 1-second window
-        intervalCap: REQUESTS_PER_SECOND,       // max N requests per second
+        interval: intervalMs,
+        intervalCap: cap,
     } );
 
     const tasks = jobs.map( job =>
